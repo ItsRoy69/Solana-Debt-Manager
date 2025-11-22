@@ -1,0 +1,58 @@
+# Rust/Cargo
+/target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# Solana
+.anchor/
+.solana/
+*.so
+*.dylib
+
+# Node.js / npm
+node_modules/
+package-lock.json
+yarn.lock
+dist/
+build/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.iml
+.vscode-test/
+
+# Environment variables (KEEP SECRET)
+.env
+.env.local
+.env.*.local
+
+# Solana CLI config (CONTAINS KEYPAIRS - KEEP SECRET)
+~/.config/solana/id.json
+
+# Wallet keypairs (KEEP SECRET)
+*-keypair.json
+*.json.secret
+private_key*
+
+# Local deployment artifacts (optional)
+.anchor/target/
+.anchor/build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.wasm
+*.o
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
