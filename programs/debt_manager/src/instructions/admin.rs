@@ -6,7 +6,7 @@ pub struct InitializeProtocol<'info> {
     #[account(
         init,
         payer = admin,
-        space = 8 + 32 + 32 + 4 + (32 + 8 + 8 + 8) * 10 + 4 + (32 + 16 + 16 + 8) * 10 + 1, // Approx size for vectors
+        space = 8 + 32 + 32 + 4 + (32 + 8 + 8 + 8) * 10 + 4 + (32 + 16 + 16 + 8) * 10 + 1,
         seeds = [b"config"],
         bump
     )]

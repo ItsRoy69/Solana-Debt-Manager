@@ -9,7 +9,7 @@ pub struct OpenDebtAccount<'info> {
     #[account(
         init,
         payer = owner,
-        space = 8 + 32 + 4 + (32 + 8) * 10 + 4 + (32 + 8 + 16) * 10 + 1, // Approx size
+        space = 8 + 32 + 4 + (32 + 8) * 10 + 4 + (32 + 8 + 16) * 10 + 1,
         seeds = [b"debt", owner.key().as_ref()],
         bump
     )]
@@ -109,9 +109,6 @@ pub fn withdraw_collateral(ctx: Context<WithdrawCollateral>, amount: u64) -> Res
         return Err(ErrorCode::InsufficientCollateral.into());
     }
 
-    // TODO: Check LTV here. For now, we assume it's safe or check later.
-    // In a real app, we must calculate total collateral value and total debt value.
-
     let mint_key = ctx.accounts.collateral_mint.key();
     let bump = ctx.bumps.vault;
     let seeds = &[
@@ -153,7 +150,6 @@ pub fn borrow(ctx: Context<Borrow>, amount: u64) -> Result<()> {
     let now = Clock::get()?.unix_timestamp as u64;
     let borrow_mint_key = ctx.accounts.borrow_mint.key();
 
-    // 1. Find asset info and update global index
     let asset_index = config.supported_borrows.iter().position(|a| a.mint == borrow_mint_key).ok_or(ErrorCode::UnsupportedBorrowAsset)?;
     let asset = &mut config.supported_borrows[asset_index];
     
@@ -162,15 +158,12 @@ pub fn borrow(ctx: Context<Borrow>, amount: u64) -> Result<()> {
     asset.last_update_ts = now;
     let current_global_index = asset.global_index;
 
-    // 2. Update user debt
     let debt_account = &mut ctx.accounts.debt_account;
     let debt_slot_index = debt_account.debt_balances.iter().position(|d| d.borrow_mint == borrow_mint_key);
 
     if let Some(idx) = debt_slot_index {
         let slot = &mut debt_account.debt_balances[idx];
-        // Accrue interest on existing principal
         let owed_now = calculate_owed_amount(slot.principal, slot.interest_index_snapshot, current_global_index)?;
-        // Add new borrow amount
         let new_principal = owed_now.checked_add(amount).ok_or(ErrorCode::MathOverflow)?;
         slot.principal = new_principal;
         slot.interest_index_snapshot = current_global_index;
@@ -182,9 +175,6 @@ pub fn borrow(ctx: Context<Borrow>, amount: u64) -> Result<()> {
         });
     }
 
-    // TODO: Check LTV
-
-    // 3. Mint tokens to user
     let bump = ctx.accounts.config.bump;
     let seeds = &[
         b"config".as_ref(),
@@ -224,7 +214,6 @@ pub fn repay(ctx: Context<Repay>, amount: u64) -> Result<()> {
     let now = Clock::get()?.unix_timestamp as u64;
     let borrow_mint_key = ctx.accounts.borrow_mint.key();
 
-    // 1. Find asset info and update global index
     let asset_index = config.supported_borrows.iter().position(|a| a.mint == borrow_mint_key).ok_or(ErrorCode::UnsupportedBorrowAsset)?;
     let asset = &mut config.supported_borrows[asset_index];
     
@@ -233,7 +222,6 @@ pub fn repay(ctx: Context<Repay>, amount: u64) -> Result<()> {
     asset.last_update_ts = now;
     let current_global_index = asset.global_index;
 
-    // 2. Update user debt
     let debt_account = &mut ctx.accounts.debt_account;
     let debt_slot_index = debt_account.debt_balances.iter().position(|d| d.borrow_mint == borrow_mint_key).ok_or(ErrorCode::NoDebtToRepay)?;
     let slot = &mut debt_account.debt_balances[debt_slot_index];
@@ -246,7 +234,6 @@ pub fn repay(ctx: Context<Repay>, amount: u64) -> Result<()> {
     slot.principal = new_principal;
     slot.interest_index_snapshot = current_global_index;
 
-    // 3. Burn tokens from user
     let cpi_accounts = Burn {
         mint: ctx.accounts.borrow_mint.to_account_info(),
         from: ctx.accounts.user_token_account.to_account_info(),
