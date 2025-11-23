@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "programs/*"
+    "programs/debt_manager"
 ]
 resolver = "2"
 
