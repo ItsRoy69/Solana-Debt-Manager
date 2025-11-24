@@ -143,22 +143,6 @@ npm start
 
 ---
 
-## Need Help?
-
-1. Check `FRONTEND_GUIDE.md` for comprehensive documentation
-2. Review `app/README.md` for frontend-specific info
-3. Check the browser console for errors
-4. Review Anchor program logs: `solana logs`
-
----
-
-## Next Steps
-
-1. ✅ Frontend is ready
-2. ⬜ Fix smart contract bugs
-3. ⬜ Test end-to-end with real tokens
-4. ⬜ Add oracle integration
-5. ⬜ Deploy to devnet/mainnet
 
 ## Deploying to Devnet / Mainnet
 
