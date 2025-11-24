@@ -37,6 +37,7 @@ A realistic, testable, security-oriented DeFi primitive on Solana built with Anc
 - Rust 1.75+
 - Solana CLI 1.18+
 - Anchor CLI 0.30+
+- Node.js 18+ (for frontend)
 
 ### Build
 
@@ -49,6 +50,18 @@ anchor build
 ```bash
 anchor test
 ```
+
+### Frontend
+
+A Next.js frontend is available in the `app/` directory:
+
+```bash
+cd app
+npm install
+npm run dev
+```
+
+Visit `http://localhost:3000` to access the web interface.
 
 ## Testing
 

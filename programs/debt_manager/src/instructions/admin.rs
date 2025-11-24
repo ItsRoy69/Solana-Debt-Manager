@@ -6,7 +6,7 @@ pub struct InitializeProtocol<'info> {
     #[account(
         init,
         payer = admin,
-        space = 8 + 32 + 32 + 4 + (32 + 8 + 8 + 8) * 10 + 4 + (32 + 16 + 16 + 8) * 10 + 1,
+        space = 8 + 32 + 32 + 4 + (32 + 8 + 8 + 8 + 8) * 10 + 4 + (32 + 16 + 16 + 8 + 8) * 10 + 1,
         seeds = [b"config"],
         bump
     )]
@@ -19,8 +19,114 @@ pub struct InitializeProtocol<'info> {
 pub fn initialize_protocol(ctx: Context<InitializeProtocol>) -> Result<()> {
     let config = &mut ctx.accounts.config;
     config.admin = ctx.accounts.admin.key();
+    config.treasury = ctx.accounts.admin.key();
     config.bump = ctx.bumps.config;
     config.supported_collaterals = Vec::new();
     config.supported_borrows = Vec::new();
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct AddSupportedCollateral<'info> {
+    #[account(
+        mut,
+        seeds = [b"config"],
+        bump = config.bump,
+        has_one = admin
+    )]
+    pub config: Account<'info, ProtocolConfig>,
+    #[account(mut)]
+    pub admin: Signer<'info>,
+}
+
+pub fn add_supported_collateral(
+    ctx: Context<AddSupportedCollateral>,
+    mint: Pubkey,
+    ltv: u64,
+    liquidation_threshold: u64,
+    liquidation_bonus: u64,
+    price: u64,
+) -> Result<()> {
+    let config = &mut ctx.accounts.config;
+    
+    if config.supported_collaterals.iter().any(|c| c.mint == mint) {
+        return Err(ProgramError::Custom(1).into());
+    }
+    
+    config.supported_collaterals.push(CollateralInfo {
+        mint,
+        ltv,
+        liquidation_threshold,
+        liquidation_bonus,
+        price,
+    });
+    
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct AddSupportedBorrow<'info> {
+    #[account(
+        mut,
+        seeds = [b"config"],
+        bump = config.bump,
+        has_one = admin
+    )]
+    pub config: Account<'info, ProtocolConfig>,
+    #[account(mut)]
+    pub admin: Signer<'info>,
+}
+
+pub fn add_supported_borrow(
+    ctx: Context<AddSupportedBorrow>,
+    mint: Pubkey,
+    annual_rate_fixed: u128,
+    price: u64,
+) -> Result<()> {
+    let config = &mut ctx.accounts.config;
+    
+    if config.supported_borrows.iter().any(|b| b.mint == mint) {
+        return Err(ProgramError::Custom(2).into());
+    }
+    
+    let clock = Clock::get()?;
+    
+    config.supported_borrows.push(BorrowAssetInfo {
+        mint,
+        annual_rate_fixed,
+        global_index: 1_000_000_000_000, 
+        last_update_ts: clock.unix_timestamp as u64,
+        price,
+    });
+    
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct InitializeVault<'info> {
+    #[account(
+        init,
+        payer = admin,
+        token::mint = mint,
+        token::authority = vault,
+        seeds = [b"vault", mint.key().as_ref()],
+        bump
+    )]
+    pub vault: Account<'info, anchor_spl::token::TokenAccount>,
+    pub mint: Account<'info, anchor_spl::token::Mint>,
+    #[account(
+        seeds = [b"config"],
+        bump = config.bump,
+        has_one = admin
+    )]
+    pub config: Account<'info, ProtocolConfig>,
+    #[account(mut)]
+    pub admin: Signer<'info>,
+    pub token_program: Program<'info, anchor_spl::token::Token>,
+    pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
+}
+
+pub fn initialize_vault(_ctx: Context<InitializeVault>) -> Result<()> {
     Ok(())
 }

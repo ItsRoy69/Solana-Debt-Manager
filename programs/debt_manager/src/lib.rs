@@ -7,7 +7,7 @@ pub mod errors;
 
 use instructions::*;
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("Bym9jYYsJryghp9KWgsRAMT97NoRizbajvEjTKehZNwZ");
 
 #[program]
 pub mod debt_manager {
@@ -15,6 +15,30 @@ pub mod debt_manager {
 
     pub fn initialize_protocol(ctx: Context<InitializeProtocol>) -> Result<()> {
         instructions::admin::initialize_protocol(ctx)
+    }
+
+    pub fn add_supported_collateral(
+        ctx: Context<AddSupportedCollateral>,
+        mint: Pubkey,
+        ltv: u64,
+        liquidation_threshold: u64,
+        liquidation_bonus: u64,
+        price: u64,
+    ) -> Result<()> {
+        instructions::admin::add_supported_collateral(ctx, mint, ltv, liquidation_threshold, liquidation_bonus, price)
+    }
+
+    pub fn add_supported_borrow(
+        ctx: Context<AddSupportedBorrow>,
+        mint: Pubkey,
+        annual_rate_fixed: u128,
+        price: u64,
+    ) -> Result<()> {
+        instructions::admin::add_supported_borrow(ctx, mint, annual_rate_fixed, price)
+    }
+
+    pub fn initialize_vault(ctx: Context<InitializeVault>) -> Result<()> {
+        instructions::admin::initialize_vault(ctx)
     }
 
     pub fn open_debt_account(ctx: Context<OpenDebtAccount>) -> Result<()> {

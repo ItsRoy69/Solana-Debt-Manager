@@ -7,11 +7,14 @@ skip-lint = false
 [programs.localnet]
 debt_manager = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
 
+[programs.devnet]
+debt_manager = "Bym9jYYsJryghp9KWgsRAMT97NoRizbajvEjTKehZNwZ"
+
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "Devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

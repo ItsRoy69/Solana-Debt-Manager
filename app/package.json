@@ -1,0 +1,49 @@
+{
+  "name": "debt-manager-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.32.1",
+    "@solana/spl-token": "^0.4.14",
+    "@solana/wallet-adapter-base": "0.9.27",
+    "@solana/wallet-adapter-react": "0.15.39",
+    "@solana/wallet-adapter-react-ui": "0.9.39",
+    "@solana/wallet-adapter-wallets": "0.19.37",
+    "@solana/web3.js": "1.98.4",
+    "bn.js": "5.2.2",
+    "next": "16.0.3",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "overrides": {
+    "qrcode.react": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    },
+    "react-qr-reader": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    },
+    "use-sync-external-store": {
+      "react": "$react"
+    }
+  },
+  "devDependencies": {
+    "@types/bn.js": "5.2.0",
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.6",
+    "@types/react-dom": "19.2.3",
+    "autoprefixer": "^10.4.22",
+    "eslint": "9.39.1",
+    "eslint-config-next": "16.0.3",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.18",
+    "typescript": "5.9.3"
+  }
+}

@@ -8,7 +8,6 @@ use crate::math::*;
 pub struct Liquidate<'info> {
     #[account(mut, seeds = [b"debt", user.key().as_ref()], bump = debt_account.bump)]
     pub debt_account: Account<'info, UserDebtAccount>,
-    /// CHECK: This account is only used as a seed for the debt_account PDA derivation
     pub user: AccountInfo<'info>,
     #[account(mut)]
     pub liquidator: Signer<'info>,
