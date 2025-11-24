@@ -80,7 +80,14 @@ export default function AdminPage() {
       fetchProtocolConfig();
     } catch (err: any) {
       console.error('Error adding collateral:', err);
-      alert('Error: ' + err.message);
+      
+      if (err.message?.includes('User rejected')) {
+        alert('❌ Transaction was rejected');
+      } else if (err.message?.includes('insufficient')) {
+        alert('❌ Insufficient SOL for transaction fees');
+      } else {
+        alert('Error: ' + (err.message || 'Failed to add collateral token'));
+      }
     } finally {
       setLoading(false);
     }
@@ -117,7 +124,14 @@ export default function AdminPage() {
       fetchProtocolConfig();
     } catch (err: any) {
       console.error('Error adding borrow asset:', err);
-      alert('Error: ' + err.message);
+      
+      if (err.message?.includes('User rejected')) {
+        alert('❌ Transaction was rejected');
+      } else if (err.message?.includes('insufficient')) {
+        alert('❌ Insufficient SOL for transaction fees');
+      } else {
+        alert('Error: ' + (err.message || 'Failed to add borrow asset'));
+      }
     } finally {
       setLoading(false);
     }
@@ -145,7 +159,14 @@ export default function AdminPage() {
       setVaultMint('');
     } catch (err: any) {
       console.error('Error initializing vault:', err);
-      alert('Error: ' + err.message);
+      
+      if (err.message?.includes('already in use') || err.logs?.some((log: string) => log.includes('already in use'))) {
+        alert('ℹ️ This vault has already been initialized for this token mint.');
+      } else if (err.message?.includes('0x0')) {
+        alert('⚠️ Vault already exists or account is already in use. Each token can only have one vault.');
+      } else {
+        alert('Error: ' + (err.message || 'Failed to initialize vault'));
+      }
     } finally {
       setLoading(false);
     }

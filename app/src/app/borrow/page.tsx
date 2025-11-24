@@ -53,11 +53,22 @@ export default function BorrowPage() {
         })
         .rpc();
 
-      alert('Borrow successful!');
+      alert('✅ Borrow successful!');
       setAmount('');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error borrowing:', err);
-      alert('Borrow failed: ' + err);
+      
+      if (err.message?.includes('AccountNotInitialized') || err.message?.includes('user_token_account')) {
+        alert('❌ You need to create a token account for this asset first.\n\nPlease create an Associated Token Account (ATA) for this mint address in your wallet, or use a service like Solflare/Phantom to receive this token type first.');
+      } else if (err.message?.includes('User rejected')) {
+        alert('❌ Transaction was rejected');
+      } else if (err.message?.includes('insufficient')) {
+        alert('❌ Insufficient SOL for transaction fees');
+      } else if (err.message?.includes('LTV') || err.message?.includes('collateral')) {
+        alert('❌ Insufficient collateral. Please deposit more collateral or borrow less.');
+      } else {
+        alert('Borrow failed: ' + (err.message || err));
+      }
     } finally {
       setLoading(false);
     }
@@ -101,11 +112,18 @@ export default function BorrowPage() {
         })
         .rpc();
 
-      alert('Repay successful!');
+      alert('✅ Repay successful!');
       setAmount('');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error repaying:', err);
-      alert('Repay failed: ' + err);
+      
+      if (err.message?.includes('User rejected')) {
+        alert('❌ Transaction was rejected');
+      } else if (err.message?.includes('insufficient')) {
+        alert('❌ Insufficient tokens to repay this amount');
+      } else {
+        alert('Repay failed: ' + (err.message || err));
+      }
     } finally {
       setLoading(false);
     }
@@ -173,11 +191,18 @@ export default function BorrowPage() {
           </div>
 
           {mode === 'borrow' && (
-            <div className="p-4 bg-yellow-900/30 border border-yellow-600 rounded-lg">
-              <p className="text-yellow-400 text-sm">
-                ⚠️ Make sure you have enough collateral. Borrowing beyond your LTV limit will fail.
-              </p>
-            </div>
+            <>
+              <div className="p-4 bg-yellow-900/30 border border-yellow-600 rounded-lg">
+                <p className="text-yellow-400 text-sm">
+                  ⚠️ Make sure you have enough collateral. Borrowing beyond your LTV limit will fail.
+                </p>
+              </div>
+              <div className="p-4 bg-blue-900/30 border border-blue-600 rounded-lg">
+                <p className="text-blue-400 text-sm">
+                  ℹ️ <strong>First time borrowing this asset?</strong> You need to create a token account for it first. Use your wallet to receive a small amount of this token type, or the transaction will fail.
+                </p>
+              </div>
+            </>
           )}
 
           <button
