@@ -160,4 +160,24 @@ npm start
 4. ⬜ Add oracle integration
 5. ⬜ Deploy to devnet/mainnet
 
+## Deploying to Devnet / Mainnet
+
+When you are ready to deploy your application to a public network (Devnet or Mainnet), you cannot rely on `anchor test` to initialize the protocol, as that is for local testing only.
+
+Instead, follow this procedure:
+
+1.  **Deploy the Program**:
+    ```bash
+    anchor deploy --provider.cluster devnet
+    ```
+
+2.  **Initialize the Protocol**:
+    We have provided a dedicated script for this purpose. This script initializes the global state of your program on the blockchain.
+    ```bash
+    npx ts-node scripts/initialize-protocol.ts
+    ```
+    *Note: Ensure your `Anchor.toml` and environment variables are configured for the correct network.*
+
+---
+
 **Happy coding! 🎉**

@@ -3,31 +3,43 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+  --background: 10 10 15; /* Deep rich dark */
+  --foreground: 255 255 255;
+  
+  --card-bg: 20 20 30;
+  --card-border: 255 255 255;
+  
+  --primary: 56 189 248; /* Cyan 400 */
+  --secondary: 168 85 247; /* Purple 500 */
+  --accent: 236 72 153; /* Pink 500 */
+  
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-bg: rgba(20, 20, 30, 0.6);
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  color: rgb(var(--foreground));
+  background: rgb(var(--background));
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.08), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.08), transparent 25%);
+  min-height: 100vh;
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  .glass-panel {
+    @apply bg-[rgba(20,20,30,0.6)] backdrop-blur-xl border border-[rgba(255,255,255,0.08)];
+  }
+  
+  .glass-card {
+    @apply bg-[rgba(30,30,40,0.4)] backdrop-blur-lg border border-[rgba(255,255,255,0.05)] hover:border-[rgba(255,255,255,0.1)] transition-all duration-300;
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+  }
+  
+  .border-glow {
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.15);
   }
 }
