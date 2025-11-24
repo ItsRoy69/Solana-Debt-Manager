@@ -24,7 +24,6 @@ export default function AdminPage() {
   
   const [loading, setLoading] = useState(false);
   const [protocolConfig, setProtocolConfig] = useState<any>(null);
-  const [adminAddress, setAdminAddress] = useState<string>('');
 
   useEffect(() => {
     fetchProtocolConfig();
@@ -41,14 +40,43 @@ export default function AdminPage() {
 
       const config = await program.account.protocolConfig.fetch(configPda);
       setProtocolConfig(config);
-      setAdminAddress(config.admin.toString());
     } catch (err) {
       console.error('Error fetching config:', err);
     }
   };
 
+  const handleInitialize = async () => {
+    if (!publicKey || !program) {
+      alert('Please connect wallet');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const [configPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('config')],
+        program.programId
+      );
+
+      await program.methods
+        .initializeProtocol()
+        .accounts({
+          admin: publicKey,
+        })
+        .rpc();
+
+      alert('Protocol initialized successfully!');
+      fetchProtocolConfig();
+    } catch (err: any) {
+      console.error('Error initializing:', err);
+      alert('Error: ' + (err.message || 'Failed to initialize'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAddCollateral = async () => {
-    if (!publicKey || !program || !collateralMint) {
+    if (!publicKey || !program || !collateralMint || !collateralPriceFeed) {
       alert('Please fill all fields');
       return;
     }
@@ -56,10 +84,6 @@ export default function AdminPage() {
     setLoading(true);
     try {
       const mintPubkey = new PublicKey(collateralMint);
-      const [configPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('config')],
-        program.programId
-      );
 
       await program.methods
         .addSupportedCollateral(
@@ -70,31 +94,24 @@ export default function AdminPage() {
           new PublicKey(collateralPriceFeed)
         )
         .accounts({
-          config: configPda,
           admin: publicKey,
         })
         .rpc();
 
-      alert('✅ Collateral token added successfully!');
+      alert('Collateral added successfully!');
       setCollateralMint('');
+      setCollateralPriceFeed('');
       fetchProtocolConfig();
     } catch (err: any) {
       console.error('Error adding collateral:', err);
-      
-      if (err.message?.includes('User rejected')) {
-        alert('❌ Transaction was rejected');
-      } else if (err.message?.includes('insufficient')) {
-        alert('❌ Insufficient SOL for transaction fees');
-      } else {
-        alert('Error: ' + (err.message || 'Failed to add collateral token'));
-      }
+      alert('Error: ' + (err.message || 'Failed to add collateral'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleAddBorrow = async () => {
-    if (!publicKey || !program || !borrowMint) {
+    if (!publicKey || !program || !borrowMint || !borrowPriceFeed) {
       alert('Please fill all fields');
       return;
     }
@@ -102,36 +119,27 @@ export default function AdminPage() {
     setLoading(true);
     try {
       const mintPubkey = new PublicKey(borrowMint);
-      const [configPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('config')],
-        program.programId
-      );
+
+      const annualRateFixed = new BN(parseFloat(interestRate) * 1e16);
 
       await program.methods
         .addSupportedBorrow(
           mintPubkey,
-          new BN(parseFloat(interestRate) * 1e8),
+          annualRateFixed,
           new PublicKey(borrowPriceFeed)
         )
         .accounts({
-          config: configPda,
           admin: publicKey,
         })
         .rpc();
 
-      alert('✅ Borrow asset added successfully!');
+      alert('Borrow asset added successfully!');
       setBorrowMint('');
+      setBorrowPriceFeed('');
       fetchProtocolConfig();
     } catch (err: any) {
-      console.error('Error adding borrow asset:', err);
-      
-      if (err.message?.includes('User rejected')) {
-        alert('❌ Transaction was rejected');
-      } else if (err.message?.includes('insufficient')) {
-        alert('❌ Insufficient SOL for transaction fees');
-      } else {
-        alert('Error: ' + (err.message || 'Failed to add borrow asset'));
-      }
+      console.error('Error adding borrow:', err);
+      alert('Error: ' + (err.message || 'Failed to add borrow asset'));
     } finally {
       setLoading(false);
     }
@@ -139,34 +147,32 @@ export default function AdminPage() {
 
   const handleInitializeVault = async () => {
     if (!publicKey || !program || !vaultMint) {
-      alert('Please enter mint address');
+      alert('Please enter vault mint');
       return;
     }
 
     setLoading(true);
     try {
       const mintPubkey = new PublicKey(vaultMint);
+      const [vaultPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('vault'), mintPubkey.toBuffer()],
+        program.programId
+      );
 
       await program.methods
         .initializeVault()
         .accountsPartial({
+          vault: vaultPda,
           mint: mintPubkey,
           admin: publicKey,
         })
         .rpc();
 
-      alert('✅ Vault initialized successfully!');
+      alert('Vault initialized successfully!');
       setVaultMint('');
     } catch (err: any) {
       console.error('Error initializing vault:', err);
-      
-      if (err.message?.includes('already in use') || err.logs?.some((log: string) => log.includes('already in use'))) {
-        alert('ℹ️ This vault has already been initialized for this token mint.');
-      } else if (err.message?.includes('0x0')) {
-        alert('⚠️ Vault already exists or account is already in use. Each token can only have one vault.');
-      } else {
-        alert('Error: ' + (err.message || 'Failed to initialize vault'));
-      }
+      alert('Error: ' + (err.message || 'Failed to initialize vault'));
     } finally {
       setLoading(false);
     }
@@ -175,218 +181,168 @@ export default function AdminPage() {
   if (!publicKey) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-gray-400">Please connect your wallet</p>
-      </div>
-    );
-  }
-
-  const isAdmin = adminAddress && publicKey.toString() === adminAddress;
-
-  if (!isAdmin && adminAddress) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <p className="text-red-400 text-xl mb-2">⛔ Access Denied</p>
-          <p className="text-gray-400">Only the protocol admin can access this page.</p>
-          <p className="text-gray-500 text-sm mt-2">Admin: {adminAddress}</p>
+          <p className="text-secondary mb-4">Please connect your wallet to access admin panel</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold text-white mb-8">🛠️ Protocol Admin</h1>
-
-      {/* Protocol Info */}
-      <div className="bg-gray-800 p-6 rounded-lg mb-8">
-        <h2 className="text-xl font-bold text-white mb-4">Protocol Configuration</h2>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="text-gray-400">Admin Address</p>
-            <p className="text-white font-mono">{adminAddress}</p>
-          </div>
-          <div>
-            <p className="text-gray-400">Supported Collaterals</p>
-            <p className="text-white">{protocolConfig?.supportedCollaterals?.length || 0}</p>
-          </div>
-          <div>
-            <p className="text-gray-400">Supported Borrows</p>
-            <p className="text-white">{protocolConfig?.supportedBorrows?.length || 0}</p>
-          </div>
-        </div>
+    <div className="max-w-6xl mx-auto animate-fade-in">
+      <div className="mb-12">
+        <h1 className="text-5xl font-light text-white mb-2">Admin Panel</h1>
+        <p className="text-secondary">Manage protocol configuration and supported assets</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Add Collateral Token */}
-        <div className="bg-gray-800 p-6 rounded-lg">
-          <h2 className="text-xl font-bold text-white mb-4">Add Collateral Token</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-gray-400 mb-2 text-sm">Token Mint Address</label>
-              <input
-                type="text"
-                placeholder="Token mint public key"
-                value={collateralMint}
-                onChange={(e) => setCollateralMint(e.target.value)}
-                className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+      {/* Initialize Protocol */}
+      {!protocolConfig && (
+        <div className="bg-card border border-border rounded-lg p-8 mb-6">
+          <h3 className="text-xl font-light text-white mb-4">Initialize Protocol</h3>
+          <button
+            onClick={handleInitialize}
+            disabled={loading}
+            className="bg-primary text-white px-8 py-3 rounded-lg font-medium hover:shadow-glow transition-all disabled:bg-border disabled:text-muted"
+          >
+            {loading ? 'Processing...' : 'Initialize Protocol'}
+          </button>
+        </div>
+      )}
+
+      {protocolConfig && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Add Collateral */}
+          <div className="bg-card border border-border rounded-lg p-6">
+            <h3 className="text-xl font-light text-white mb-6">Add Collateral Asset</h3>
+            <div className="space-y-4">
               <div>
-                <label className="block text-gray-400 mb-2 text-sm">LTV (%)</label>
+                <label className="block text-muted text-sm uppercase tracking-wider mb-2">Mint Address</label>
                 <input
-                  type="number"
-                  value={ltv}
-                  onChange={(e) => setLtv(e.target.value)}
-                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
-                  step="1"
-                  min="0"
-                  max="100"
+                  type="text"
+                  value={collateralMint}
+                  onChange={(e) => setCollateralMint(e.target.value)}
+                  className="w-full bg-background border border-border text-white px-4 py-2 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all font-mono text-sm"
+                  placeholder="Mint address"
                 />
               </div>
               <div>
-                <label className="block text-gray-400 mb-2 text-sm">Liquidation Threshold (%)</label>
-                <input
-                  type="number"
-                  value={liquidationThreshold}
-                  onChange={(e) => setLiquidationThreshold(e.target.value)}
-                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
-                  step="1"
-                  min="0"
-                  max="100"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-gray-400 mb-2 text-sm">Liquidation Bonus (%)</label>
-                <input
-                  type="number"
-                  value={liquidationBonus}
-                  onChange={(e) => setLiquidationBonus(e.target.value)}
-                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
-                  step="0.1"
-                  min="0"
-                />
-              </div>
-              <div>
-                <label className="block text-gray-400 mb-2 text-sm">Pyth Price Feed ID</label>
+                <label className="block text-muted text-sm uppercase tracking-wider mb-2">Price Feed ID</label>
                 <input
                   type="text"
                   value={collateralPriceFeed}
                   onChange={(e) => setCollateralPriceFeed(e.target.value)}
-                  placeholder="0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d"
-                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 font-mono text-xs"
+                  className="w-full bg-background border border-border text-white px-4 py-2 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all font-mono text-sm"
+                  placeholder="Pyth price feed ID"
                 />
-                <p className="text-gray-500 text-xs mt-1">Get from pyth.network/developers/price-feed-ids</p>
               </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-muted text-xs uppercase tracking-wider mb-2">LTV %</label>
+                  <input
+                    type="number"
+                    value={ltv}
+                    onChange={(e) => setLtv(e.target.value)}
+                    className="w-full bg-background border border-border text-white px-3 py-2 rounded-lg focus:outline-none focus:border-primary text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-muted text-xs uppercase tracking-wider mb-2">Liq. Threshold %</label>
+                  <input
+                    type="number"
+                    value={liquidationThreshold}
+                    onChange={(e) => setLiquidationThreshold(e.target.value)}
+                    className="w-full bg-background border border-border text-white px-3 py-2 rounded-lg focus:outline-none focus:border-primary text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-muted text-xs uppercase tracking-wider mb-2">Bonus %</label>
+                  <input
+                    type="number"
+                    value={liquidationBonus}
+                    onChange={(e) => setLiquidationBonus(e.target.value)}
+                    className="w-full bg-background border border-border text-white px-3 py-2 rounded-lg focus:outline-none focus:border-primary text-sm"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={handleAddCollateral}
+                disabled={loading}
+                className="w-full bg-primary text-white py-3 rounded-lg font-medium hover:shadow-glow transition-all disabled:bg-border disabled:text-muted"
+              >
+                {loading ? 'Processing...' : 'Add Collateral'}
+              </button>
             </div>
-            <button
-              onClick={handleAddCollateral}
-              disabled={loading || !collateralMint}
-              className="w-full py-3 px-6 rounded-lg font-bold text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Processing...' : 'Add Collateral Token'}
-            </button>
           </div>
-        </div>
 
-        {/* Add Borrow Asset */}
-        <div className="bg-gray-800 p-6 rounded-lg">
-          <h2 className="text-xl font-bold text-white mb-4">Add Borrow Asset</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-gray-400 mb-2 text-sm">Token Mint Address</label>
-              <input
-                type="text"
-                placeholder="Token mint public key"
-                value={borrowMint}
-                onChange={(e) => setBorrowMint(e.target.value)}
-                className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+          {/* Add Borrow Asset */}
+          <div className="bg-card border border-border rounded-lg p-6">
+            <h3 className="text-xl font-light text-white mb-6">Add Borrow Asset</h3>
+            <div className="space-y-4">
               <div>
-                <label className="block text-gray-400 mb-2 text-sm">Annual Interest Rate (%)</label>
+                <label className="block text-muted text-sm uppercase tracking-wider mb-2">Mint Address</label>
                 <input
-                  type="number"
-                  value={interestRate}
-                  onChange={(e) => setInterestRate(e.target.value)}
-                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                  step="0.1"
-                  min="0"
+                  type="text"
+                  value={borrowMint}
+                  onChange={(e) => setBorrowMint(e.target.value)}
+                  className="w-full bg-background border border-border text-white px-4 py-2 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all font-mono text-sm"
+                  placeholder="Mint address"
                 />
               </div>
               <div>
-                <label className="block text-gray-400 mb-2 text-sm">Pyth Price Feed ID</label>
+                <label className="block text-muted text-sm uppercase tracking-wider mb-2">Price Feed ID</label>
                 <input
                   type="text"
                   value={borrowPriceFeed}
                   onChange={(e) => setBorrowPriceFeed(e.target.value)}
-                  placeholder="0x41f3625971ca2ed2263e78573fe5ce23e13d2558ed3f2e47ab0f84fb9e7ae722"
-                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 font-mono text-xs"
+                  className="w-full bg-background border border-border text-white px-4 py-2 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all font-mono text-sm"
+                  placeholder="Pyth price feed ID"
                 />
-                <p className="text-gray-500 text-xs mt-1">Get from pyth.network/developers/price-feed-ids</p>
               </div>
+              <div>
+                <label className="block text-muted text-sm uppercase tracking-wider mb-2">Annual Interest Rate %</label>
+                <input
+                  type="number"
+                  value={interestRate}
+                  onChange={(e) => setInterestRate(e.target.value)}
+                  className="w-full bg-background border border-border text-white px-4 py-2 rounded-lg focus:outline-none focus:border-primary text-sm"
+                  step="0.1"
+                />
+              </div>
+              <button
+                onClick={handleAddBorrow}
+                disabled={loading}
+                className="w-full bg-primary text-white py-3 rounded-lg font-medium hover:shadow-glow transition-all disabled:bg-border disabled:text-muted"
+              >
+                {loading ? 'Processing...' : 'Add Borrow Asset'}
+              </button>
             </div>
-            <button
-              onClick={handleAddBorrow}
-              disabled={loading || !borrowMint}
-              className="w-full py-3 px-6 rounded-lg font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Processing...' : 'Add Borrow Asset'}
-            </button>
           </div>
-        </div>
 
-        {/* Initialize Vault */}
-        <div className="bg-gray-800 p-6 rounded-lg">
-          <h2 className="text-xl font-bold text-white mb-4">Initialize Vault</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-gray-400 mb-2 text-sm">Token Mint Address</label>
-              <input
-                type="text"
-                placeholder="Token mint public key"
-                value={vaultMint}
-                onChange={(e) => setVaultMint(e.target.value)}
-                className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
-              />
+          {/* Initialize Vault */}
+          <div className="bg-card border border-border rounded-lg p-6">
+            <h3 className="text-xl font-light text-white mb-6">Initialize Vault</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-muted text-sm uppercase tracking-wider mb-2">Vault Mint Address</label>
+                <input
+                  type="text"
+                  value={vaultMint}
+                  onChange={(e) => setVaultMint(e.target.value)}
+                  className="w-full bg-background border border-border text-white px-4 py-2 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all font-mono text-sm"
+                  placeholder="Mint address"
+                />
+              </div>
+              <button
+                onClick={handleInitializeVault}
+                disabled={loading}
+                className="w-full bg-primary text-white py-3 rounded-lg font-medium hover:shadow-glow transition-all disabled:bg-border disabled:text-muted"
+              >
+                {loading ? 'Processing...' : 'Initialize Vault'}
+              </button>
             </div>
-            <p className="text-gray-400 text-sm">
-              ⚠️ Initialize vault after adding a token as collateral. This creates the vault account for deposits.
-            </p>
-            <button
-              onClick={handleInitializeVault}
-              disabled={loading || !vaultMint}
-              className="w-full py-3 px-6 rounded-lg font-bold text-white bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Processing...' : 'Initialize Vault'}
-            </button>
           </div>
         </div>
-
-        {/* Token List */}
-        <div className="bg-gray-800 p-6 rounded-lg">
-          <h2 className="text-xl font-bold text-white mb-4">Supported Tokens</h2>
-          <div className="space-y-4">
-            {protocolConfig?.supportedCollaterals?.length > 0 ? (
-              protocolConfig.supportedCollaterals.map((token: any, idx: number) => (
-                <div key={idx} className="bg-gray-700 p-4 rounded-lg">
-                  <p className="text-white font-mono text-sm mb-2">{token.mint.toString()}</p>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <p className="text-gray-400">LTV: {token.ltv / 10000}%</p>
-                    <p className="text-gray-400">Liq Threshold: {token.liquidationThreshold / 10000}%</p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-400 text-sm">No tokens configured yet</p>
-            )}
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

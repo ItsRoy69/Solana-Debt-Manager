@@ -2,9 +2,16 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useWallet } from '@solana/wallet-adapter-react';
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { publicKey } = useWallet();
+
+  // Don't show sidebar if wallet not connected
+  if (!publicKey) {
+    return null;
+  }
 
   const links = [
     { name: 'Dashboard', href: '/', icon: (
@@ -41,40 +48,41 @@ export default function Sidebar() {
   ];
 
   return (
-    <div className="hidden lg:flex flex-col w-64 min-h-screen fixed left-0 top-0 glass-panel border-r border-[rgba(255,255,255,0.08)]">
-      <div className="p-6">
-        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary text-glow">
+    <div className="hidden lg:flex flex-col w-64 min-h-screen fixed left-0 top-0 bg-card border-r border-border">
+      <div className="p-6 border-b border-border">
+        <h1 className="text-2xl font-light text-white">
            DEBTER
         </h1>
+        <p className="text-muted text-xs mt-1">Debt Manager</p>
       </div>
 
-      <nav className="flex-1 px-4 space-y-2 mt-4">
+      <nav className="flex-1 px-4 space-y-1 mt-4">
         {links.map((link) => {
           const isActive = pathname === link.href;
           return (
             <Link
               key={link.name}
               href={link.href}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group
+              className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group
                 ${isActive 
-                  ? 'bg-primary/10 text-primary border border-primary/20 shadow-[0_0_15px_rgba(56,189,248,0.15)]' 
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  ? 'bg-primary/10 text-primary border border-primary/20' 
+                  : 'text-secondary hover:text-white hover:bg-background'
                 }`}
             >
-              <span className={`${isActive ? 'text-primary drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]' : 'group-hover:text-white'}`}>
+              <span className={`${isActive ? 'text-primary' : 'group-hover:text-white'}`}>
                 {link.icon}
               </span>
-              <span className="font-medium">{link.name}</span>
+              <span className="font-medium text-sm">{link.name}</span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="p-4 border-t border-[rgba(255,255,255,0.05)]">
-        <div className="glass-card p-4 rounded-xl">
-          <p className="text-xs text-gray-400 mb-2">System Status</p>
+      <div className="p-4 border-t border-border">
+        <div className="bg-background p-3 rounded-lg border border-border">
+          <p className="text-xs text-muted mb-2 uppercase tracking-wider">Status</p>
           <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)] animate-pulse"></div>
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
             <span className="text-sm text-green-400">Operational</span>
           </div>
         </div>
