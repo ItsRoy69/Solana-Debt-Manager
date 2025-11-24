@@ -15,7 +15,7 @@ pub struct CollateralInfo {
     pub ltv: u64,
     pub liquidation_threshold: u64,
     pub liquidation_bonus: u64,
-    pub price: u64,
+    pub price_feed: Pubkey,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug)]
@@ -24,7 +24,7 @@ pub struct BorrowAssetInfo {
     pub annual_rate_fixed: u128,
     pub global_index: u128,
     pub last_update_ts: u64,
-    pub price: u64,
+    pub price_feed: Pubkey,
 }
 
 #[account]

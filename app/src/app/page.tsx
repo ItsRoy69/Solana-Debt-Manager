@@ -64,8 +64,8 @@ export default function Home() {
         const info = config.supportedCollaterals.find((sc: any) => 
           sc.mint.toString() === c.mint.toString()
         );
-        const price = info ? info.price.toNumber() / 1e6 : 0;
-        const valueUSD = (c.amount.toNumber() / 1e9) * price;
+        const price = 0;
+        const valueUSD = 0;
         totalCollateralValue += valueUSD;
         
         return {
@@ -81,7 +81,7 @@ export default function Home() {
         const info = config.supportedBorrows.find((sb: any) => 
           sb.mint.toString() === d.borrowMint.toString()
         );
-        const price = info ? info.price.toNumber() / 1e6 : 0;
+        const price = 0;
         const annualRate = info ? info.annualRateFixed.toNumber() / 1e18 : 0;
         const apy = annualRate * 100;
         
@@ -90,7 +90,7 @@ export default function Home() {
         const snapshotIndex = d.interestIndexSnapshot.toNumber() / 1e18;
         const owed = principal * (currentIndex / snapshotIndex);
         
-        const valueUSD = owed * price;
+        const valueUSD = 0;
         totalDebtValue += valueUSD;
         
         return {

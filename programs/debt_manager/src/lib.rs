@@ -23,18 +23,18 @@ pub mod debt_manager {
         ltv: u64,
         liquidation_threshold: u64,
         liquidation_bonus: u64,
-        price: u64,
+        price_feed: Pubkey,
     ) -> Result<()> {
-        instructions::admin::add_supported_collateral(ctx, mint, ltv, liquidation_threshold, liquidation_bonus, price)
+        instructions::admin::add_supported_collateral(ctx, mint, ltv, liquidation_threshold, liquidation_bonus, price_feed)
     }
 
     pub fn add_supported_borrow(
         ctx: Context<AddSupportedBorrow>,
         mint: Pubkey,
         annual_rate_fixed: u128,
-        price: u64,
+        price_feed: Pubkey,
     ) -> Result<()> {
-        instructions::admin::add_supported_borrow(ctx, mint, annual_rate_fixed, price)
+        instructions::admin::add_supported_borrow(ctx, mint, annual_rate_fixed, price_feed)
     }
 
     pub fn initialize_vault(ctx: Context<InitializeVault>) -> Result<()> {

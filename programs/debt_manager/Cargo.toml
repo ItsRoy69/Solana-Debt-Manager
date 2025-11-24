@@ -22,3 +22,4 @@ custom-panic = []
 [dependencies]
 anchor-lang = "0.32.1"
 anchor-spl = "0.32.1"
+pyth-sdk-solana = "0.10.6"

@@ -18,4 +18,10 @@ pub enum ErrorCode {
     DebtAccountAlreadyExists,
     #[msg("No debt to repay")]
     NoDebtToRepay,
+    #[msg("Invalid Price Feed")]
+    InvalidPriceFeed,
+    #[msg("Price Too Old")]
+    PriceTooOld,
+    #[msg("Invalid Price")]
+    InvalidPrice,
 }

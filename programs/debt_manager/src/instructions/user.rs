@@ -46,13 +46,16 @@ pub struct DepositCollateral<'info> {
     pub token_program: Program<'info, Token>,
     #[account(seeds = [b"config"], bump = config.bump)]
     pub config: Account<'info, ProtocolConfig>,
+    /// CHECK: Verified in instruction
+    pub price_feed: AccountInfo<'info>,
 }
 
 pub fn deposit_collateral(ctx: Context<DepositCollateral>, amount: u64) -> Result<()> {
     let config = &ctx.accounts.config;
-    let is_supported = config.supported_collaterals.iter().any(|c| c.mint == ctx.accounts.collateral_mint.key());
-    if !is_supported {
-        return Err(ErrorCode::UnsupportedCollateral.into());
+    let collateral_info = config.supported_collaterals.iter().find(|c| c.mint == ctx.accounts.collateral_mint.key()).ok_or(ErrorCode::UnsupportedCollateral)?;
+    
+    if collateral_info.price_feed != ctx.accounts.price_feed.key() {
+        return Err(ErrorCode::InvalidPriceFeed.into());
     }
 
     let cpi_accounts = Transfer {
@@ -95,9 +98,23 @@ pub struct WithdrawCollateral<'info> {
     pub token_program: Program<'info, Token>,
     #[account(seeds = [b"config"], bump = config.bump)]
     pub config: Account<'info, ProtocolConfig>,
+    /// CHECK: Verified in instruction
+    pub price_feed: AccountInfo<'info>,
 }
 
 pub fn withdraw_collateral(ctx: Context<WithdrawCollateral>, amount: u64) -> Result<()> {
+    let config = &ctx.accounts.config;
+    let collateral_info = config.supported_collaterals.iter().find(|c| c.mint == ctx.accounts.collateral_mint.key()).ok_or(ErrorCode::UnsupportedCollateral)?;
+    
+    if collateral_info.price_feed != ctx.accounts.price_feed.key() {
+        return Err(ErrorCode::InvalidPriceFeed.into());
+    }
+
+    // TODO: Full health check required here using all price feeds.
+    // For now, we verify the price feed is correct, but we are not yet checking global health 
+    // because we need all price feeds passed in remaining_accounts.
+    // This is a known limitation for this step.
+
     let debt_account = &mut ctx.accounts.debt_account;
     
     if let Some(balance) = debt_account.collateral_balances.iter_mut().find(|b| b.mint == ctx.accounts.collateral_mint.key()) {
@@ -143,6 +160,8 @@ pub struct Borrow<'info> {
     #[account(mut)]
     pub borrow_mint: Account<'info, Mint>,
     pub token_program: Program<'info, Token>,
+    /// CHECK: Verified in instruction
+    pub price_feed: AccountInfo<'info>,
 }
 
 pub fn borrow(ctx: Context<Borrow>, amount: u64) -> Result<()> {
@@ -152,6 +171,13 @@ pub fn borrow(ctx: Context<Borrow>, amount: u64) -> Result<()> {
 
     let asset_index = config.supported_borrows.iter().position(|a| a.mint == borrow_mint_key).ok_or(ErrorCode::UnsupportedBorrowAsset)?;
     let asset = &mut config.supported_borrows[asset_index];
+    
+    if asset.price_feed != ctx.accounts.price_feed.key() {
+        return Err(ErrorCode::InvalidPriceFeed.into());
+    }
+    
+    // Fetch price to ensure feed is working, even if we don't fully check health yet
+    let _price = get_price_from_feed(&ctx.accounts.price_feed, 60, now as i64)?;
     
     let new_index = update_global_index(asset.global_index, asset.annual_rate_fixed, asset.last_update_ts, now)?;
     asset.global_index = new_index;
@@ -207,6 +233,8 @@ pub struct Repay<'info> {
     #[account(mut)]
     pub borrow_mint: Account<'info, Mint>,
     pub token_program: Program<'info, Token>,
+    /// CHECK: Verified in instruction
+    pub price_feed: AccountInfo<'info>,
 }
 
 pub fn repay(ctx: Context<Repay>, amount: u64) -> Result<()> {
@@ -216,6 +244,10 @@ pub fn repay(ctx: Context<Repay>, amount: u64) -> Result<()> {
 
     let asset_index = config.supported_borrows.iter().position(|a| a.mint == borrow_mint_key).ok_or(ErrorCode::UnsupportedBorrowAsset)?;
     let asset = &mut config.supported_borrows[asset_index];
+    
+    if asset.price_feed != ctx.accounts.price_feed.key() {
+        return Err(ErrorCode::InvalidPriceFeed.into());
+    }
     
     let new_index = update_global_index(asset.global_index, asset.annual_rate_fixed, asset.last_update_ts, now)?;
     asset.global_index = new_index;

@@ -53,6 +53,16 @@ export default function DepositPage() {
         program.programId
       );
 
+      const config = await program.account.protocolConfig.fetch(configPda);
+      const collateralInfo = config.supportedCollaterals.find(
+        (c: any) => c.mint.toString() === mintPubkey.toString()
+      );
+
+      if (!collateralInfo) {
+        alert('This asset is not supported as collateral');
+        return;
+      }
+
       await program.methods
         .depositCollateral(amountLamports)
         .accountsPartial({
@@ -63,6 +73,7 @@ export default function DepositPage() {
           collateralMint: mintPubkey,
           tokenProgram: TOKEN_PROGRAM_ID,
           config: configPda,
+          priceFeed: collateralInfo.priceFeed,
         })
         .rpc();
 
@@ -102,6 +113,16 @@ export default function DepositPage() {
         program.programId
       );
 
+      const config = await program.account.protocolConfig.fetch(configPda);
+      const collateralInfo = config.supportedCollaterals.find(
+        (c: any) => c.mint.toString() === mintPubkey.toString()
+      );
+
+      if (!collateralInfo) {
+        alert('This asset is not supported as collateral');
+        return;
+      }
+
       const userTokenAccount = getAssociatedTokenAddressSync(
         mintPubkey,
         publicKey
@@ -123,6 +144,7 @@ export default function DepositPage() {
           collateralMint: mintPubkey,
           tokenProgram: TOKEN_PROGRAM_ID,
           config: configPda,
+          priceFeed: collateralInfo.priceFeed,
         })
         .rpc();
 

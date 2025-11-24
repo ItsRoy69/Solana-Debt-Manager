@@ -1,9 +1,63 @@
 use anchor_lang::prelude::*;
+use pyth_sdk_solana::state::SolanaPriceAccount;
 
 pub const INDEX_SCALE: u128 = 1_000_000_000_000_000_000;
 pub const SECONDS_PER_YEAR: u128 = 31_536_000;
+pub const PRICE_PRECISION: u64 = 1_000_000; // 6 decimals
 
 use crate::errors::ErrorCode;
+
+pub fn get_price_from_feed(price_feed_info: &AccountInfo, max_age: u64, current_ts: i64) -> Result<u64> {
+    let price_account = SolanaPriceAccount::account_info_to_feed(price_feed_info)
+        .map_err(|_| ErrorCode::InvalidPriceFeed)?;
+    
+    let price = price_account.get_price_no_older_than(current_ts, max_age)
+        .ok_or(ErrorCode::PriceTooOld)?;
+
+    if price.price <= 0 {
+        return Err(ErrorCode::InvalidPrice.into());
+    }
+
+    let price_u64 = price.price as u64;
+    let expo = price.expo;
+    
+    // Normalize to PRICE_PRECISION (10^6)
+    // Pyth price = price * 10^expo
+    // Target = price * 10^expo * 10^6 / 10^expo = price * 10^6
+    // We want result = price * 10^(expo + 6)
+    
+    let target_expo = 6;
+    let current_expo = expo;
+    
+    let result = if current_expo < target_expo {
+        // e.g. expo -8, target 6. Need to multiply by 10^(6 - (-8)) = 10^14. Too big?
+        // Wait, Pyth expo is usually negative. E.g. -8.
+        // Price of SOL $20. 2000000000 * 10^-8 = 20.
+        // We want 20 * 10^6 = 20000000.
+        // So we want 2000000000 * 10^(-8) * 10^6 = 2000000000 * 10^-2.
+        // So we divide by 10^2.
+        
+        
+        // Let's use u128 for calculation
+        let p = price_u64 as u128;
+        
+        // If expo is -8, we have P * 10^-8. We want P * 10^-8 * 10^6 = P * 10^-2.
+        // So we divide by 10^2.
+        
+        // General formula: result = price * 10^(target_expo - current_expo)
+        let power = target_expo - current_expo;
+        if power >= 0 {
+             p * 10u128.pow(power as u32)
+        } else {
+             p / 10u128.pow((-power) as u32)
+        }
+    } else {
+        let power = current_expo - target_expo;
+        (price_u64 as u128) / 10u128.pow(power as u32)
+    };
+
+    Ok(result as u64)
+}
 
 pub fn update_global_index(
     global_index: u128,

@@ -45,7 +45,7 @@ pub fn add_supported_collateral(
     ltv: u64,
     liquidation_threshold: u64,
     liquidation_bonus: u64,
-    price: u64,
+    price_feed: Pubkey,
 ) -> Result<()> {
     let config = &mut ctx.accounts.config;
     
@@ -58,7 +58,7 @@ pub fn add_supported_collateral(
         ltv,
         liquidation_threshold,
         liquidation_bonus,
-        price,
+        price_feed,
     });
     
     Ok(())
@@ -81,7 +81,7 @@ pub fn add_supported_borrow(
     ctx: Context<AddSupportedBorrow>,
     mint: Pubkey,
     annual_rate_fixed: u128,
-    price: u64,
+    price_feed: Pubkey,
 ) -> Result<()> {
     let config = &mut ctx.accounts.config;
     
@@ -96,7 +96,7 @@ pub fn add_supported_borrow(
         annual_rate_fixed,
         global_index: 1_000_000_000_000, 
         last_update_ts: clock.unix_timestamp as u64,
-        price,
+        price_feed,
     });
     
     Ok(())

@@ -36,6 +36,16 @@ export default function BorrowPage() {
         [Buffer.from('config')],
         program.programId
       );
+      
+      const config = await program.account.protocolConfig.fetch(configPda);
+      const borrowInfo = config.supportedBorrows.find(
+        (b: any) => b.mint.toString() === mintPubkey.toString()
+      );
+
+      if (!borrowInfo) {
+        alert('This asset is not supported for borrowing');
+        return;
+      }
 
       const userTokenAccount = getAssociatedTokenAddressSync(
         mintPubkey,
@@ -57,6 +67,7 @@ export default function BorrowPage() {
           userTokenAccount: userTokenAccount,
           borrowMint: mintPubkey,
           tokenProgram: TOKEN_PROGRAM_ID,
+          priceFeed: borrowInfo.priceFeed,
         })
         .rpc();
 
@@ -102,6 +113,16 @@ export default function BorrowPage() {
         program.programId
       );
 
+      const config = await program.account.protocolConfig.fetch(configPda);
+      const borrowInfo = config.supportedBorrows.find(
+        (b: any) => b.mint.toString() === mintPubkey.toString()
+      );
+
+      if (!borrowInfo) {
+        alert('This asset is not supported for borrowing');
+        return;
+      }
+
       const userTokenAccount = getAssociatedTokenAddressSync(
         mintPubkey,
         publicKey
@@ -122,6 +143,7 @@ export default function BorrowPage() {
           userTokenAccount: userTokenAccount,
           borrowMint: mintPubkey,
           tokenProgram: TOKEN_PROGRAM_ID,
+          priceFeed: borrowInfo.priceFeed,
         })
         .rpc();
 

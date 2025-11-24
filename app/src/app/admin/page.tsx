@@ -14,11 +14,11 @@ export default function AdminPage() {
   const [ltv, setLtv] = useState('75');
   const [liquidationThreshold, setLiquidationThreshold] = useState('80');
   const [liquidationBonus, setLiquidationBonus] = useState('5');
-  const [collateralPrice, setCollateralPrice] = useState('1');
+  const [collateralPriceFeed, setCollateralPriceFeed] = useState('');
   
   const [borrowMint, setBorrowMint] = useState('');
   const [interestRate, setInterestRate] = useState('5');
-  const [borrowPrice, setBorrowPrice] = useState('1');
+  const [borrowPriceFeed, setBorrowPriceFeed] = useState('');
   
   const [vaultMint, setVaultMint] = useState('');
   
@@ -67,7 +67,7 @@ export default function AdminPage() {
           new BN(parseFloat(ltv) * 10000),
           new BN(parseFloat(liquidationThreshold) * 10000),
           new BN(parseFloat(liquidationBonus) * 10000),
-          new BN(parseFloat(collateralPrice) * 1e9)
+          new PublicKey(collateralPriceFeed)
         )
         .accounts({
           config: configPda,
@@ -111,7 +111,7 @@ export default function AdminPage() {
         .addSupportedBorrow(
           mintPubkey,
           new BN(parseFloat(interestRate) * 1e8),
-          new BN(parseFloat(borrowPrice) * 1e9)
+          new PublicKey(borrowPriceFeed)
         )
         .accounts({
           config: configPda,
@@ -271,15 +271,15 @@ export default function AdminPage() {
                 />
               </div>
               <div>
-                <label className="block text-gray-400 mb-2 text-sm">Price (USD)</label>
+                <label className="block text-gray-400 mb-2 text-sm">Pyth Price Feed ID</label>
                 <input
-                  type="number"
-                  value={collateralPrice}
-                  onChange={(e) => setCollateralPrice(e.target.value)}
-                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
-                  step="0.01"
-                  min="0"
+                  type="text"
+                  value={collateralPriceFeed}
+                  onChange={(e) => setCollateralPriceFeed(e.target.value)}
+                  placeholder="0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d"
+                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 font-mono text-xs"
                 />
+                <p className="text-gray-500 text-xs mt-1">Get from pyth.network/developers/price-feed-ids</p>
               </div>
             </div>
             <button
@@ -319,15 +319,15 @@ export default function AdminPage() {
                 />
               </div>
               <div>
-                <label className="block text-gray-400 mb-2 text-sm">Price (USD)</label>
+                <label className="block text-gray-400 mb-2 text-sm">Pyth Price Feed ID</label>
                 <input
-                  type="number"
-                  value={borrowPrice}
-                  onChange={(e) => setBorrowPrice(e.target.value)}
-                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                  step="0.01"
-                  min="0"
+                  type="text"
+                  value={borrowPriceFeed}
+                  onChange={(e) => setBorrowPriceFeed(e.target.value)}
+                  placeholder="0x41f3625971ca2ed2263e78573fe5ce23e13d2558ed3f2e47ab0f84fb9e7ae722"
+                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 font-mono text-xs"
                 />
+                <p className="text-gray-500 text-xs mt-1">Get from pyth.network/developers/price-feed-ids</p>
               </div>
             </div>
             <button

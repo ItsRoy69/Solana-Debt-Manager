@@ -21,6 +21,8 @@ export default function LiquidatePage() {
   const [loading, setLoading] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState<string>('');
   const [amount, setAmount] = useState('');
+  const [collateralMint, setCollateralMint] = useState('');
+  const [borrowMint, setBorrowMint] = useState('');
 
   useEffect(() => {
     if (program) {
@@ -52,7 +54,7 @@ export default function LiquidatePage() {
             sc.mint.toString() === c.mint.toString()
           );
           if (info) {
-            const price = info.price.toNumber() / 1e6;
+            const price = 0;
             totalCollateralValue += (c.amount.toNumber() / 1e9) * price;
           }
         }
@@ -62,7 +64,7 @@ export default function LiquidatePage() {
             sb.mint.toString() === d.borrowMint.toString()
           );
           if (info) {
-            const price = info.price.toNumber() / 1e6;
+            const price = 0; 
             const principal = d.principal.toNumber() / 1e9;
             const currentIndex = info.globalIndex.toNumber() / 1e18;
             const snapshotIndex = d.interestIndexSnapshot.toNumber() / 1e18;
@@ -79,7 +81,7 @@ export default function LiquidatePage() {
               sc.mint.toString() === c.mint.toString()
             );
             if (info) {
-              const price = info.price.toNumber() / 1e6;
+              const price = 0;
               const value = (c.amount.toNumber() / 1e9) * price;
               numerator += value * (info.liquidationThreshold.toNumber() / 10000);
             }
@@ -129,16 +131,36 @@ export default function LiquidatePage() {
         program.programId
       );
 
-      const collateralMint = new PublicKey('COLLATERAL_MINT');
-      const borrowMint = new PublicKey('BORROW_MINT');
+      if (!collateralMint || !borrowMint) {
+        alert('Please enter both collateral and borrow mint addresses');
+        return;
+      }
+
+      const collateralMintPubkey = new PublicKey(collateralMint);
+      const borrowMintPubkey = new PublicKey(borrowMint);
+
+      const config = await program.account.protocolConfig.fetch(configPda);
+      
+      const collateralInfo = config.supportedCollaterals.find(
+        (c: any) => c.mint.toString() === collateralMintPubkey.toString()
+      );
+      const borrowInfo = config.supportedBorrows.find(
+        (b: any) => b.mint.toString() === borrowMintPubkey.toString()
+      );
+
+      if (!collateralInfo || !borrowInfo) {
+        alert('Collateral or borrow asset not supported');
+        return;
+      }
 
       const [vaultPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('vault'), collateralMint.toBuffer()],
+        [Buffer.from('vault'), collateralMintPubkey.toBuffer()],
         program.programId
       );
 
-      const liquidatorCollateralAccount = new PublicKey('YOUR_COLLATERAL_ACCOUNT');
-      const liquidatorBorrowAccount = new PublicKey('YOUR_BORROW_ACCOUNT');
+      const { getAssociatedTokenAddressSync } = await import('@solana/spl-token');
+      const liquidatorCollateralAccount = getAssociatedTokenAddressSync(collateralMintPubkey, publicKey);
+      const liquidatorBorrowAccount = getAssociatedTokenAddressSync(borrowMintPubkey, publicKey);
 
       await program.methods
         .liquidate(amountLamports)
@@ -150,9 +172,11 @@ export default function LiquidatePage() {
           liquidatorBorrowAccount,
           config: configPda,
           vault: vaultPda,
-          collateralMint,
-          borrowMint,
+          collateralMint: collateralMintPubkey,
+          borrowMint: borrowMintPubkey,
           tokenProgram: TOKEN_PROGRAM_ID,
+          collateralPriceFeed: collateralInfo.priceFeed,
+          borrowPriceFeed: borrowInfo.priceFeed,
         })
         .rpc();
 
@@ -296,6 +320,28 @@ export default function LiquidatePage() {
           
           <div className="space-y-6">
             <div>
+              <label className="block text-gray-400 mb-2 text-sm font-medium uppercase tracking-wider">Collateral Mint</label>
+              <input
+                type="text"
+                placeholder="Collateral mint address"
+                value={collateralMint}
+                onChange={(e) => setCollateralMint(e.target.value)}
+                className="w-full bg-black/20 border border-white/10 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all font-mono text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-gray-400 mb-2 text-sm font-medium uppercase tracking-wider">Borrow Mint</label>
+              <input
+                type="text"
+                placeholder="Borrow mint address"
+                value={borrowMint}
+                onChange={(e) => setBorrowMint(e.target.value)}
+                className="w-full bg-black/20 border border-white/10 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all font-mono text-sm"
+              />
+            </div>
+
+            <div>
               <label className="block text-gray-400 mb-2 text-sm font-medium uppercase tracking-wider">Debt Amount to Repay</label>
               <div className="relative">
                 <input
@@ -322,7 +368,7 @@ export default function LiquidatePage() {
 
             <button
               onClick={handleLiquidate}
-              disabled={loading || !amount}
+              disabled={loading || !amount || !collateralMint || !borrowMint}
               className="w-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-bold py-4 px-6 rounded-xl disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed transition-all duration-300 shadow-lg shadow-red-600/20 hover:shadow-red-600/40 transform hover:-translate-y-1"
             >
               {loading ? 'Processing...' : 'Execute Liquidation'}
