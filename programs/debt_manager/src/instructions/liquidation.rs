@@ -4,6 +4,8 @@ use crate::state::*;
 use crate::errors::ErrorCode;
 use crate::math::*;
 
+pub const MAX_LIQUIDATION_CLOSE_FACTOR: u64 = 5000;
+
 #[derive(Accounts)]
 pub struct Liquidate<'info> {
     #[account(mut, seeds = [b"debt", user.key().as_ref()], bump = debt_account.bump)]
@@ -54,25 +56,14 @@ pub fn liquidate(ctx: Context<Liquidate>, amount: u64) -> Result<()> {
     let mut total_debt_value: u128 = 0;
     let mut weighted_threshold_numerator: u128 = 0;
 
-
-    let find_price = |feed_pubkey: Pubkey, remaining_accounts: &[AccountInfo]| -> Result<u64> {
-        if feed_pubkey == ctx.accounts.collateral_price_feed.key() {
-            return get_price_from_feed(&ctx.accounts.collateral_price_feed, 60, now);
-        }
-        if feed_pubkey == ctx.accounts.borrow_price_feed.key() {
-            return get_price_from_feed(&ctx.accounts.borrow_price_feed, 60, now);
-        }
-        for acc in remaining_accounts {
-            if acc.key() == feed_pubkey {
-                return get_price_from_feed(acc, 60, now);
-            }
-        }
-        Err(ErrorCode::InvalidPriceFeed.into())
-    };
-
     for c in &debt_account.collateral_balances {
         if let Some(info) = config.supported_collaterals.iter().find(|x| x.mint == c.mint) {
-            let price = find_price(info.price_feed, ctx.remaining_accounts)?;
+            let price_feed = if info.mint == ctx.accounts.collateral_mint.key() {
+                &ctx.accounts.collateral_price_feed
+            } else {
+                &ctx.accounts.borrow_price_feed
+            };
+            let price = get_price_from_feed(price_feed, 60, now)?;
             let value = (c.amount as u128) * (price as u128);
             total_collateral_value += value;
             weighted_threshold_numerator += value * (info.liquidation_threshold as u128);
@@ -81,7 +72,7 @@ pub fn liquidate(ctx: Context<Liquidate>, amount: u64) -> Result<()> {
 
     for d in &debt_account.debt_balances {
         if let Some(info) = config.supported_borrows.iter().find(|x| x.mint == d.borrow_mint) {
-            let price = find_price(info.price_feed, ctx.remaining_accounts)?;
+            let price = get_price_from_feed(&ctx.accounts.borrow_price_feed, 60, now)?;
             let owed = calculate_owed_amount(d.principal, d.interest_index_snapshot, info.global_index)?;
             let value = (owed as u128) * (price as u128);
             total_debt_value += value;
@@ -98,6 +89,19 @@ pub fn liquidate(ctx: Context<Liquidate>, amount: u64) -> Result<()> {
         return Err(ErrorCode::Unauthorized.into());
     }
 
+    let debt_balance = debt_account.debt_balances.iter()
+        .find(|d| d.borrow_mint == ctx.accounts.borrow_mint.key())
+        .ok_or(ErrorCode::NoDebtToRepay)?;
+    
+    let owed = calculate_owed_amount(debt_balance.principal, debt_balance.interest_index_snapshot, borrow_info.global_index)?;
+    
+    let max_liquidatable = (owed as u128) * (MAX_LIQUIDATION_CLOSE_FACTOR as u128) / 10000;
+    let actual_amount = if (amount as u128) > max_liquidatable {
+        max_liquidatable as u64
+    } else {
+        amount
+    };
+
     let cpi_accounts = Burn {
         mint: ctx.accounts.borrow_mint.to_account_info(),
         from: ctx.accounts.liquidator_borrow_account.to_account_info(),
@@ -105,10 +109,10 @@ pub fn liquidate(ctx: Context<Liquidate>, amount: u64) -> Result<()> {
     };
     let cpi_program = ctx.accounts.token_program.to_account_info();
     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
-    token::burn(cpi_ctx, amount)?;
+    token::burn(cpi_ctx, actual_amount)?;
 
     if let Some(d) = debt_account.debt_balances.iter_mut().find(|d| d.borrow_mint == ctx.accounts.borrow_mint.key()) {
-        d.principal = d.principal.checked_sub(amount).ok_or(ErrorCode::MathOverflow)?;
+        d.principal = d.principal.checked_sub(actual_amount).ok_or(ErrorCode::MathOverflow)?;
     }
 
     let _borrow_info = config.supported_borrows.iter().find(|x| x.mint == ctx.accounts.borrow_mint.key()).ok_or(ErrorCode::UnsupportedBorrowAsset)?;
@@ -118,7 +122,7 @@ pub fn liquidate(ctx: Context<Liquidate>, amount: u64) -> Result<()> {
     let collateral_price = get_price_from_feed(&ctx.accounts.collateral_price_feed, 60, now)?;
 
 
-    let borrow_value = (amount as u128) * (borrow_price as u128);
+    let borrow_value = (actual_amount as u128) * (borrow_price as u128);
     let collateral_value_to_seize = borrow_value * (10000 + collateral_info.liquidation_bonus as u128) / 10000;
     let collateral_amount_to_seize = collateral_value_to_seize / (collateral_price as u128);
 

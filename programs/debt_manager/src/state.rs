@@ -52,3 +52,9 @@ pub struct DebtBalance {
     pub principal: u64,
     pub interest_index_snapshot: u128,
 }
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+pub struct CollateralToSeize {
+    pub mint: Pubkey,
+    pub max_amount: u64,
+}
