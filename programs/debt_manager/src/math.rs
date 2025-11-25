@@ -7,6 +7,36 @@ pub const PRICE_PRECISION: u64 = 1_000_000;
 
 use crate::errors::ErrorCode;
 
+pub const UTILIZATION_PRECISION: u64 = 10000;
+pub const RATE_PRECISION: u64 = 10000;
+
+pub fn calculate_utilization(total_borrows: u64, total_deposits: u64) -> u64 {
+    if total_deposits == 0 {
+        return 0;
+    }
+    ((total_borrows as u128) * (UTILIZATION_PRECISION as u128) / (total_deposits as u128)) as u64
+}
+
+pub fn calculate_borrow_rate(
+    utilization: u64,
+    base_rate: u64,
+    optimal_utilization: u64,
+    slope1: u64,
+    slope2: u64,
+) -> u64 {
+    if utilization <= optimal_utilization {
+        base_rate + ((utilization as u128) * (slope1 as u128) / (optimal_utilization as u128)) as u64
+    } else {
+        let excess_utilization = utilization - optimal_utilization;
+        let max_excess = UTILIZATION_PRECISION - optimal_utilization;
+        base_rate + slope1 + ((excess_utilization as u128) * (slope2 as u128) / (max_excess as u128)) as u64
+    }
+}
+
+pub fn calculate_annual_rate_from_borrow_rate(borrow_rate: u64) -> u128 {
+    (borrow_rate as u128) * INDEX_SCALE / (RATE_PRECISION as u128)
+}
+
 pub fn get_price_from_feed(price_feed_info: &AccountInfo, max_age: u64, current_ts: i64) -> Result<u64> {
     let price_account = SolanaPriceAccount::account_info_to_feed(price_feed_info)
         .map_err(|_| ErrorCode::InvalidPriceFeed)?;

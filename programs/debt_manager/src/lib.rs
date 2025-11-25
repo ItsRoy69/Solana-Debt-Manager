@@ -31,17 +31,32 @@ pub mod debt_manager {
     pub fn add_supported_borrow(
         ctx: Context<AddSupportedBorrow>,
         mint: Pubkey,
-        annual_rate_fixed: u128,
+        base_rate: u64,
+        optimal_utilization: u64,
+        slope1: u64,
+        slope2: u64,
         price_feed: Pubkey,
     ) -> Result<()> {
-        instructions::admin::add_supported_borrow(ctx, mint, annual_rate_fixed, price_feed)
+        instructions::admin::add_supported_borrow(ctx, mint, base_rate, optimal_utilization, slope1, slope2, price_feed)
     }
 
     pub fn initialize_vault(ctx: Context<InitializeVault>) -> Result<()> {
         instructions::admin::initialize_vault(ctx)
     }
 
+    pub fn update_rate_model(
+        ctx: Context<UpdateRateModel>,
+        mint: Pubkey,
+        base_rate: u64,
+        optimal_utilization: u64,
+        slope1: u64,
+        slope2: u64,
+    ) -> Result<()> {
+        instructions::admin::update_rate_model(ctx, mint, base_rate, optimal_utilization, slope1, slope2)
+    }
+
     pub fn open_debt_account(ctx: Context<OpenDebtAccount>) -> Result<()> {
+
         instructions::user::open_debt_account(ctx)
     }
 

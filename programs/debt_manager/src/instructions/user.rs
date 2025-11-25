@@ -218,20 +218,31 @@ pub fn borrow(ctx: Context<Borrow>, amount: u64) -> Result<()> {
     
     let borrow_price = get_price_from_feed(&ctx.accounts.price_feed, 60, now as i64)?;
     
-    let new_index = update_global_index(asset.global_index, asset.annual_rate_fixed, asset.last_update_ts, now)?;
+    let utilization = crate::math::calculate_utilization(asset.total_borrows, asset.total_deposits);
+    let borrow_rate = crate::math::calculate_borrow_rate(
+        utilization,
+        asset.base_rate,
+        asset.optimal_utilization,
+        asset.slope1,
+        asset.slope2
+    );
+    let annual_rate = crate::math::calculate_annual_rate_from_borrow_rate(borrow_rate);
+    
+    let new_index = update_global_index(asset.global_index, annual_rate, asset.last_update_ts, now)?;
     asset.global_index = new_index;
     asset.last_update_ts = now;
     let current_global_index = asset.global_index;
 
+    asset.total_borrows = asset.total_borrows.checked_add(amount).ok_or(ErrorCode::MathOverflow)?;
+
     let debt_account = &mut ctx.accounts.debt_account;
     let debt_slot_index = debt_account.debt_balances.iter().position(|d| d.borrow_mint == borrow_mint_key);
 
-    let mut new_debt_amount = amount;
     if let Some(idx) = debt_slot_index {
         let slot = &mut debt_account.debt_balances[idx];
         let owed_now = calculate_owed_amount(slot.principal, slot.interest_index_snapshot, current_global_index)?;
-        new_debt_amount = owed_now.checked_add(amount).ok_or(ErrorCode::MathOverflow)?;
-        slot.principal = new_debt_amount;
+        let new_principal = owed_now.checked_add(amount).ok_or(ErrorCode::MathOverflow)?;
+        slot.principal = new_principal;
         slot.interest_index_snapshot = current_global_index;
     } else {
         debt_account.debt_balances.push(DebtBalance {
@@ -330,7 +341,17 @@ pub fn repay(ctx: Context<Repay>, amount: u64) -> Result<()> {
         return Err(ErrorCode::InvalidPriceFeed.into());
     }
     
-    let new_index = update_global_index(asset.global_index, asset.annual_rate_fixed, asset.last_update_ts, now)?;
+    let utilization = crate::math::calculate_utilization(asset.total_borrows, asset.total_deposits);
+    let borrow_rate = crate::math::calculate_borrow_rate(
+        utilization,
+        asset.base_rate,
+        asset.optimal_utilization,
+        asset.slope1,
+        asset.slope2
+    );
+    let annual_rate = crate::math::calculate_annual_rate_from_borrow_rate(borrow_rate);
+    
+    let new_index = update_global_index(asset.global_index, annual_rate, asset.last_update_ts, now)?;
     asset.global_index = new_index;
     asset.last_update_ts = now;
     let current_global_index = asset.global_index;
@@ -346,6 +367,9 @@ pub fn repay(ctx: Context<Repay>, amount: u64) -> Result<()> {
 
     slot.principal = new_principal;
     slot.interest_index_snapshot = current_global_index;
+
+    let asset = &mut config.supported_borrows[asset_index];
+    asset.total_borrows = asset.total_borrows.checked_sub(repay_amount).ok_or(ErrorCode::MathOverflow)?;
 
     let cpi_accounts = Burn {
         mint: ctx.accounts.borrow_mint.to_account_info(),
@@ -370,7 +394,17 @@ pub fn accrue_interest(ctx: Context<AccrueInterest>) -> Result<()> {
     let now = Clock::get()?.unix_timestamp as u64;
 
     for asset in config.supported_borrows.iter_mut() {
-        let new_index = update_global_index(asset.global_index, asset.annual_rate_fixed, asset.last_update_ts, now)?;
+        let utilization = crate::math::calculate_utilization(asset.total_borrows, asset.total_deposits);
+        let borrow_rate = crate::math::calculate_borrow_rate(
+            utilization,
+            asset.base_rate,
+            asset.optimal_utilization,
+            asset.slope1,
+            asset.slope2
+        );
+        let annual_rate = crate::math::calculate_annual_rate_from_borrow_rate(borrow_rate);
+        
+        let new_index = update_global_index(asset.global_index, annual_rate, asset.last_update_ts, now)?;
         asset.global_index = new_index;
         asset.last_update_ts = now;
     }

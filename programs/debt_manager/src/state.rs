@@ -21,7 +21,12 @@ pub struct CollateralInfo {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug)]
 pub struct BorrowAssetInfo {
     pub mint: Pubkey,
-    pub annual_rate_fixed: u128,
+    pub base_rate: u64,
+    pub optimal_utilization: u64,
+    pub slope1: u64,
+    pub slope2: u64,
+    pub total_deposits: u64,
+    pub total_borrows: u64,
     pub global_index: u128,
     pub last_update_ts: u64,
     pub price_feed: Pubkey,

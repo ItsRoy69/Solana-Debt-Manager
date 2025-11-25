@@ -80,7 +80,10 @@ pub struct AddSupportedBorrow<'info> {
 pub fn add_supported_borrow(
     ctx: Context<AddSupportedBorrow>,
     mint: Pubkey,
-    annual_rate_fixed: u128,
+    base_rate: u64,
+    optimal_utilization: u64,
+    slope1: u64,
+    slope2: u64,
     price_feed: Pubkey,
 ) -> Result<()> {
     let config = &mut ctx.accounts.config;
@@ -93,7 +96,12 @@ pub fn add_supported_borrow(
     
     config.supported_borrows.push(BorrowAssetInfo {
         mint,
-        annual_rate_fixed,
+        base_rate,
+        optimal_utilization,
+        slope1,
+        slope2,
+        total_deposits: 0,
+        total_borrows: 0,
         global_index: crate::math::INDEX_SCALE,
         last_update_ts: clock.unix_timestamp as u64,
         price_feed,
@@ -129,5 +137,40 @@ pub struct InitializeVault<'info> {
 }
 
 pub fn initialize_vault(_ctx: Context<InitializeVault>) -> Result<()> {
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct UpdateRateModel<'info> {
+    #[account(
+        mut,
+        seeds = [b"config"],
+        bump = config.bump,
+        has_one = admin
+    )]
+    pub config: Account<'info, ProtocolConfig>,
+    #[account(mut)]
+    pub admin: Signer<'info>,
+}
+
+pub fn update_rate_model(
+    ctx: Context<UpdateRateModel>,
+    mint: Pubkey,
+    base_rate: u64,
+    optimal_utilization: u64,
+    slope1: u64,
+    slope2: u64,
+) -> Result<()> {
+    let config = &mut ctx.accounts.config;
+    
+    let asset = config.supported_borrows.iter_mut()
+        .find(|b| b.mint == mint)
+        .ok_or(ProgramError::Custom(2))?;
+    
+    asset.base_rate = base_rate;
+    asset.optimal_utilization = optimal_utilization;
+    asset.slope1 = slope1;
+    asset.slope2 = slope2;
+    
     Ok(())
 }
