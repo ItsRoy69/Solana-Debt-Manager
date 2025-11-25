@@ -189,7 +189,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto animate-fade-in">
+    <div className="animate-fade-in">
       <div className="mb-12">
         <h1 className="text-5xl font-light text-white mb-2">Admin Panel</h1>
         <p className="text-secondary">Manage protocol configuration and supported assets</p>

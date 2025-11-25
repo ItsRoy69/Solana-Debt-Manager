@@ -161,7 +161,7 @@ export default function DepositPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto animate-fade-in">
+    <div className="animate-fade-in">
       <div className="mb-12">
         <h1 className="text-5xl font-light text-white mb-2">Manage Collateral</h1>
         <p className="text-secondary">Deposit or withdraw your collateral assets</p>

@@ -149,7 +149,7 @@ export default function BorrowPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto animate-fade-in">
+    <div className="animate-fade-in">
       <div className="mb-12">
         <h1 className="text-5xl font-light text-white mb-2">Borrow & Repay</h1>
         <p className="text-secondary">Borrow assets against your collateral or repay your debt</p>

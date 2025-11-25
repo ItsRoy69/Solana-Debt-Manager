@@ -23,7 +23,6 @@ export default function HistoryPage() {
 
   useEffect(() => {
     if (publicKey && connection) {
-      // Reset state when wallet changes
       setAllTransactions([]);
       setCurrentPage(0);
       setHasMore(true);
@@ -101,7 +100,7 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto animate-fade-in">
+    <div className="animate-fade-in">
       <div className="flex justify-between items-end mb-12">
         <div>
           <h1 className="text-5xl font-light text-white mb-2">Transaction History</h1>

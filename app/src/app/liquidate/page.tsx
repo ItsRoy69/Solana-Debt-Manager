@@ -157,7 +157,7 @@ export default function LiquidatePage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto animate-fade-in">
+    <div className="animate-fade-in">
       <div className="mb-12">
         <h1 className="text-5xl font-light text-white mb-2">Liquidations</h1>
         <p className="text-secondary">Liquidate unhealthy positions and earn rewards</p>

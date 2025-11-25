@@ -3,10 +3,12 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useSidebar } from '@/contexts/SidebarContext';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { publicKey } = useWallet();
+  const { isOpen, close } = useSidebar();
 
   // Don't show sidebar if wallet not connected
   if (!publicKey) {
@@ -48,7 +50,23 @@ export default function Sidebar() {
   ];
 
   return (
-    <div className="hidden lg:flex flex-col w-64 min-h-screen fixed left-0 top-0 bg-card border-r border-border">
+    <>
+      {/* Mobile Backdrop */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+          onClick={close}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`
+        fixed lg:fixed inset-y-0 left-0 z-[100]
+        w-64 bg-card border-r border-border
+        transform transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        flex flex-col min-h-screen pb-20 lg:pb-0
+      `}>
       <div className="p-6 border-b border-border">
         <h1 className="text-2xl font-light text-white">
            DEBTER
@@ -63,6 +81,11 @@ export default function Sidebar() {
             <Link
               key={link.name}
               href={link.href}
+              onClick={() => {
+                if (window.innerWidth < 1024) {
+                  close();
+                }
+              }}
               className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group
                 ${isActive 
                   ? 'bg-primary/10 text-primary border border-primary/20' 
@@ -88,5 +111,6 @@ export default function Sidebar() {
         </div>
       </div>
     </div>
+    </>
   );
 }

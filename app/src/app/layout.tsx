@@ -6,6 +6,7 @@ import WalletContextProvider from "@/contexts/WalletContextProvider";
 import { AnchorContextProvider } from "@/contexts/AnchorContextProvider";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
+import { SidebarProvider } from "@/contexts/SidebarContext";
 import { useWallet } from '@solana/wallet-adapter-react';
 
 const inter = Inter({ subsets: ["latin"] });
@@ -47,7 +48,9 @@ export default function RootLayout({
       <body className={`${inter.className} bg-background min-h-screen text-foreground selection:bg-primary/30`} suppressHydrationWarning>
         <WalletContextProvider>
           <AnchorContextProvider>
-            <LayoutContent>{children}</LayoutContent>
+            <SidebarProvider>
+              <LayoutContent>{children}</LayoutContent>
+            </SidebarProvider>
           </AnchorContextProvider>
         </WalletContextProvider>
       </body>
