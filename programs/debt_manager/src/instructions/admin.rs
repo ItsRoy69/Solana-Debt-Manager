@@ -94,13 +94,14 @@ pub fn add_supported_borrow(
     config.supported_borrows.push(BorrowAssetInfo {
         mint,
         annual_rate_fixed,
-        global_index: 1_000_000_000_000, 
+        global_index: crate::math::INDEX_SCALE,
         last_update_ts: clock.unix_timestamp as u64,
         price_feed,
     });
     
     Ok(())
 }
+
 
 #[derive(Accounts)]
 pub struct InitializeVault<'info> {

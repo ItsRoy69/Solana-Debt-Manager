@@ -110,10 +110,7 @@ pub fn withdraw_collateral(ctx: Context<WithdrawCollateral>, amount: u64) -> Res
         return Err(ErrorCode::InvalidPriceFeed.into());
     }
 
-    // TODO: Full health check required here using all price feeds.
-    // For now, we verify the price feed is correct, but we are not yet checking global health 
-    // because we need all price feeds passed in remaining_accounts.
-    // This is a known limitation for this step.
+
 
     let debt_account = &mut ctx.accounts.debt_account;
     
@@ -124,6 +121,48 @@ pub fn withdraw_collateral(ctx: Context<WithdrawCollateral>, amount: u64) -> Res
         balance.amount = balance.amount.checked_sub(amount).ok_or(ErrorCode::MathOverflow)?;
     } else {
         return Err(ErrorCode::InsufficientCollateral.into());
+    }
+
+    if !debt_account.debt_balances.is_empty() {
+        let now = Clock::get()?.unix_timestamp as u64;
+        
+        let mut total_collateral_value_with_ltv: u128 = 0;
+        for c in &debt_account.collateral_balances {
+            if let Some(info) = config.supported_collaterals.iter().find(|x| x.mint == c.mint) {
+                let price = get_price_from_feed(
+                    ctx.remaining_accounts.iter().find(|acc| acc.key() == info.price_feed)
+                        .ok_or(ErrorCode::InvalidPriceFeed)?,
+                    60,
+                    now as i64
+                )?;
+                let value = (c.amount as u128) * (price as u128);
+                let value_with_ltv = value * (info.ltv as u128) / 10000;
+                total_collateral_value_with_ltv = total_collateral_value_with_ltv
+                    .checked_add(value_with_ltv)
+                    .ok_or(ErrorCode::MathOverflow)?;
+            }
+        }
+
+
+        let mut total_debt_value: u128 = 0;
+        for d in &debt_account.debt_balances {
+            if let Some(info) = config.supported_borrows.iter().find(|x| x.mint == d.borrow_mint) {
+                let price = get_price_from_feed(
+                    ctx.remaining_accounts.iter().find(|acc| acc.key() == info.price_feed)
+                        .ok_or(ErrorCode::InvalidPriceFeed)?,
+                    60,
+                    now as i64
+                )?;
+                let owed = calculate_owed_amount(d.principal, d.interest_index_snapshot, info.global_index)?;
+                let value = (owed as u128) * (price as u128);
+                total_debt_value = total_debt_value.checked_add(value).ok_or(ErrorCode::MathOverflow)?;
+            }
+        }
+
+        if total_debt_value > total_collateral_value_with_ltv {
+
+            return Err(ErrorCode::LTVExceeded.into());
+        }
     }
 
     let mint_key = ctx.accounts.collateral_mint.key();
@@ -146,6 +185,7 @@ pub fn withdraw_collateral(ctx: Context<WithdrawCollateral>, amount: u64) -> Res
     
     Ok(())
 }
+
 
 #[derive(Accounts)]
 pub struct Borrow<'info> {
@@ -176,8 +216,7 @@ pub fn borrow(ctx: Context<Borrow>, amount: u64) -> Result<()> {
         return Err(ErrorCode::InvalidPriceFeed.into());
     }
     
-    // Fetch price to ensure feed is working, even if we don't fully check health yet
-    let _price = get_price_from_feed(&ctx.accounts.price_feed, 60, now as i64)?;
+    let borrow_price = get_price_from_feed(&ctx.accounts.price_feed, 60, now as i64)?;
     
     let new_index = update_global_index(asset.global_index, asset.annual_rate_fixed, asset.last_update_ts, now)?;
     asset.global_index = new_index;
@@ -187,11 +226,12 @@ pub fn borrow(ctx: Context<Borrow>, amount: u64) -> Result<()> {
     let debt_account = &mut ctx.accounts.debt_account;
     let debt_slot_index = debt_account.debt_balances.iter().position(|d| d.borrow_mint == borrow_mint_key);
 
+    let mut new_debt_amount = amount;
     if let Some(idx) = debt_slot_index {
         let slot = &mut debt_account.debt_balances[idx];
         let owed_now = calculate_owed_amount(slot.principal, slot.interest_index_snapshot, current_global_index)?;
-        let new_principal = owed_now.checked_add(amount).ok_or(ErrorCode::MathOverflow)?;
-        slot.principal = new_principal;
+        new_debt_amount = owed_now.checked_add(amount).ok_or(ErrorCode::MathOverflow)?;
+        slot.principal = new_debt_amount;
         slot.interest_index_snapshot = current_global_index;
     } else {
         debt_account.debt_balances.push(DebtBalance {
@@ -199,6 +239,46 @@ pub fn borrow(ctx: Context<Borrow>, amount: u64) -> Result<()> {
             principal: amount,
             interest_index_snapshot: current_global_index,
         });
+    }
+
+    let mut total_collateral_value_with_ltv: u128 = 0;
+    for c in &debt_account.collateral_balances {
+        if let Some(info) = config.supported_collaterals.iter().find(|x| x.mint == c.mint) {
+            let price = get_price_from_feed(
+                ctx.remaining_accounts.iter().find(|acc| acc.key() == info.price_feed)
+                    .ok_or(ErrorCode::InvalidPriceFeed)?,
+                60,
+                now as i64
+            )?;
+            let value = (c.amount as u128) * (price as u128);
+            let value_with_ltv = value * (info.ltv as u128) / 10000;
+            total_collateral_value_with_ltv = total_collateral_value_with_ltv
+                .checked_add(value_with_ltv)
+                .ok_or(ErrorCode::MathOverflow)?;
+        }
+    }
+
+    let mut total_debt_value: u128 = 0;
+    for d in &debt_account.debt_balances {
+        if let Some(info) = config.supported_borrows.iter().find(|x| x.mint == d.borrow_mint) {
+            let price = if info.mint == borrow_mint_key {
+                borrow_price
+            } else {
+                get_price_from_feed(
+                    ctx.remaining_accounts.iter().find(|acc| acc.key() == info.price_feed)
+                        .ok_or(ErrorCode::InvalidPriceFeed)?,
+                    60,
+                    now as i64
+                )?
+            };
+            let owed = calculate_owed_amount(d.principal, d.interest_index_snapshot, info.global_index)?;
+            let value = (owed as u128) * (price as u128);
+            total_debt_value = total_debt_value.checked_add(value).ok_or(ErrorCode::MathOverflow)?;
+        }
+    }
+
+    if total_debt_value > total_collateral_value_with_ltv {
+        return Err(ErrorCode::LTVExceeded.into());
     }
 
     let bump = ctx.accounts.config.bump;
@@ -219,6 +299,7 @@ pub fn borrow(ctx: Context<Borrow>, amount: u64) -> Result<()> {
 
     Ok(())
 }
+
 
 #[derive(Accounts)]
 pub struct Repay<'info> {

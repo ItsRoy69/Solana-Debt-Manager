@@ -1,8 +1,9 @@
 'use client';
 
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { useAnchor } from '@/contexts/AnchorContextProvider';
 import { PublicKey } from '@solana/web3.js';
+import { parsePriceData } from '@pythnetwork/client';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 
@@ -32,6 +33,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [hasAccount, setHasAccount] = useState(false);
 
+  const { connection } = useConnection();
+
   useEffect(() => {
     if (publicKey && program) {
       fetchUserPosition();
@@ -57,45 +60,86 @@ export default function Home() {
       );
       const config = await program.account.protocolConfig.fetch(configPda);
 
+
+      const priceFeedKeys: PublicKey[] = [];
+      const mintToPriceFeed: Record<string, PublicKey> = {};
+
+      config.supportedCollaterals.forEach((c: any) => {
+        priceFeedKeys.push(c.priceFeed);
+        mintToPriceFeed[c.mint.toString()] = c.priceFeed;
+      });
+      config.supportedBorrows.forEach((b: any) => {
+        priceFeedKeys.push(b.priceFeed);
+        mintToPriceFeed[b.mint.toString()] = b.priceFeed;
+      });
+
+      const priceInfos = await connection.getMultipleAccountsInfo(priceFeedKeys);
+      const priceMap: Record<string, number> = {};
+
+      priceInfos.forEach((info, i) => {
+        if (info) {
+          try {
+            const priceData = parsePriceData(info.data);
+            if (priceData && priceData.price) {
+              priceMap[priceFeedKeys[i].toString()] = priceData.price;
+            }
+          } catch (e) {
+            console.error('Error parsing price data', e);
+          }
+        }
+      });
+
       let totalCollateralValue = 0;
       const collaterals = debtAccount.collateralBalances.map((c: any) => {
-        const price = 0;
-        const valueUSD = 0;
+        const mintStr = c.mint.toString();
+        const priceFeed = mintToPriceFeed[mintStr];
+        const price = priceFeed ? (priceMap[priceFeed.toString()] || 0) : 0;
+        
+        const amount = c.amount.toNumber() / 1e9;
+        const valueUSD = amount * price;
         totalCollateralValue += valueUSD;
         
         return {
-          mint: c.mint.toString(),
+          mint: mintStr,
           symbol: 'COL',
-          amount: c.amount.toNumber() / 1e9,
+          amount,
           valueUSD,
         };
       });
 
       let totalDebtValue = 0;
       const debts = debtAccount.debtBalances.map((d: any) => {
+        const mintStr = d.borrowMint.toString();
         const info = config.supportedBorrows.find((sb: any) => 
-          sb.mint.toString() === d.borrowMint.toString()
+          sb.mint.toString() === mintStr
         );
-        const price = 0;
+        
+        const priceFeed = mintToPriceFeed[mintStr];
+        const price = priceFeed ? (priceMap[priceFeed.toString()] || 0) : 0;
+        
         const annualRate = info ? info.annualRateFixed.toNumber() / 1e18 : 0;
         const apy = annualRate * 100;
         
         const principal = d.principal.toNumber() / 1e9;
         const currentIndex = info ? info.globalIndex.toNumber() / 1e18 : 1;
         const snapshotIndex = d.interestIndexSnapshot.toNumber() / 1e18;
-        const owed = principal * (currentIndex / snapshotIndex);
         
-        const valueUSD = 0;
+
+        const indexRatio = snapshotIndex > 0 ? currentIndex / snapshotIndex : 1;
+        const owed = principal * indexRatio;
+        
+        const valueUSD = owed * price;
         totalDebtValue += valueUSD;
         
         return {
-          mint: d.borrowMint.toString(),
+          mint: mintStr,
           symbol: 'DEBT',
           amount: owed,
           valueUSD,
           apy,
         };
       });
+
 
       const healthRatio = totalDebtValue > 0 ? totalCollateralValue / totalDebtValue : 999;
 

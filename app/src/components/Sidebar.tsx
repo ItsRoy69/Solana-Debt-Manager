@@ -10,7 +10,7 @@ export default function Sidebar() {
   const { publicKey } = useWallet();
   const { isOpen, close } = useSidebar();
 
-  // Don't show sidebar if wallet not connected
+
   if (!publicKey) {
     return null;
   }
@@ -51,7 +51,6 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile Backdrop */}
       {isOpen && (
         <div 
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
@@ -59,7 +58,6 @@ export default function Sidebar() {
         />
       )}
 
-      {/* Sidebar */}
       <div className={`
         fixed lg:fixed inset-y-0 left-0 z-[100]
         w-64 bg-card border-r border-border
