@@ -14,7 +14,13 @@ cd ..
 anchor build
 ```
 
-This generates the IDL file that the frontend needs.
+After building, you must sync the generated IDL and types to the frontend:
+```bash
+cd app
+npm run sync-idl
+```
+
+This ensures the frontend has the latest contract definitions.
 
 ### Step 3: Update Configuration (Optional)
 
