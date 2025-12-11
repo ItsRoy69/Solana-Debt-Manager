@@ -24,4 +24,6 @@ pub enum ErrorCode {
     PriceTooOld,
     #[msg("Invalid Price")]
     InvalidPrice,
+    #[msg("Flashloan repayment failed")]
+    FlashReplyError,
 }

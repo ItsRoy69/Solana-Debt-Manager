@@ -3,6 +3,7 @@ use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer, MintTo, Burn}
 use crate::state::*;
 use crate::errors::ErrorCode;
 use crate::math::*;
+use crate::points;
 
 #[derive(Accounts)]
 pub struct OpenDebtAccount<'info> {
@@ -19,11 +20,14 @@ pub struct OpenDebtAccount<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn open_debt_account(ctx: Context<OpenDebtAccount>) -> Result<()> {
+pub fn open_debt_account(ctx: Context<OpenDebtAccount>, referrer: Option<Pubkey>) -> Result<()> {
     let debt_account = &mut ctx.accounts.debt_account;
     debt_account.owner = ctx.accounts.owner.key();
     debt_account.collateral_balances = Vec::new();
     debt_account.debt_balances = Vec::new();
+    debt_account.accumulated_points = 0;
+    debt_account.last_points_update_ts = Clock::get()?.unix_timestamp;
+    debt_account.referrer = referrer;
     debt_account.bump = ctx.bumps.debt_account;
     Ok(())
 }
@@ -57,6 +61,10 @@ pub fn deposit_collateral(ctx: Context<DepositCollateral>, amount: u64) -> Resul
     if collateral_info.price_feed != ctx.accounts.price_feed.key() {
         return Err(ErrorCode::InvalidPriceFeed.into());
     }
+
+    let debt_account = &mut ctx.accounts.debt_account;
+    let now = Clock::get()?.unix_timestamp;
+    points::update_points(debt_account, now)?;
 
     let cpi_accounts = Transfer {
         from: ctx.accounts.user_collateral.to_account_info(),
@@ -113,6 +121,8 @@ pub fn withdraw_collateral(ctx: Context<WithdrawCollateral>, amount: u64) -> Res
 
 
     let debt_account = &mut ctx.accounts.debt_account;
+    let now = Clock::get()?.unix_timestamp;
+    points::update_points(debt_account, now)?;
     
     if let Some(balance) = debt_account.collateral_balances.iter_mut().find(|b| b.mint == ctx.accounts.collateral_mint.key()) {
         if balance.amount < amount {
@@ -216,6 +226,9 @@ pub fn borrow(ctx: Context<Borrow>, amount: u64) -> Result<()> {
         return Err(ErrorCode::InvalidPriceFeed.into());
     }
     
+    let debt_account = &mut ctx.accounts.debt_account;
+    points::update_points(debt_account, now as i64)?;
+
     let borrow_price = get_price_from_feed(&ctx.accounts.price_feed, 60, now as i64)?;
     
     let utilization = crate::math::calculate_utilization(asset.total_borrows, asset.total_deposits);
@@ -357,6 +370,8 @@ pub fn repay(ctx: Context<Repay>, amount: u64) -> Result<()> {
     let current_global_index = asset.global_index;
 
     let debt_account = &mut ctx.accounts.debt_account;
+    points::update_points(debt_account, now as i64)?;
+
     let debt_slot_index = debt_account.debt_balances.iter().position(|d| d.borrow_mint == borrow_mint_key).ok_or(ErrorCode::NoDebtToRepay)?;
     let slot = &mut debt_account.debt_balances[debt_slot_index];
 

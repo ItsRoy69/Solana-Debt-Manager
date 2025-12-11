@@ -4,6 +4,7 @@ pub mod state;
 pub mod instructions;
 pub mod math;
 pub mod errors;
+pub mod points;
 
 use instructions::*;
 
@@ -55,9 +56,9 @@ pub mod debt_manager {
         instructions::admin::update_rate_model(ctx, mint, base_rate, optimal_utilization, slope1, slope2)
     }
 
-    pub fn open_debt_account(ctx: Context<OpenDebtAccount>) -> Result<()> {
+    pub fn open_debt_account(ctx: Context<OpenDebtAccount>, referrer: Option<Pubkey>) -> Result<()> {
 
-        instructions::user::open_debt_account(ctx)
+        instructions::user::open_debt_account(ctx, referrer)
     }
 
     pub fn deposit_collateral(ctx: Context<DepositCollateral>, amount: u64) -> Result<()> {
@@ -82,5 +83,13 @@ pub mod debt_manager {
 
     pub fn accrue_interest(ctx: Context<AccrueInterest>) -> Result<()> {
         instructions::user::accrue_interest(ctx)
+    }
+
+    pub fn flash_loan(ctx: Context<FlashLoanAction>, amount: u64, instruction_data: Vec<u8>) -> Result<()> {
+        instructions::flashloan::flash_loan(ctx, amount, instruction_data)
+    }
+
+    pub fn jupiter_swap(ctx: Context<JupiterSwapCpi>, data: Vec<u8>) -> Result<()> {
+        instructions::swap::jupiter_swap(ctx, data)
     }
 }

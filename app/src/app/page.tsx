@@ -6,11 +6,15 @@ import { PublicKey } from '@solana/web3.js';
 import { parsePriceData } from '@pythnetwork/client';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { LoopingModal } from '@/components/LoopingModal';
 
 interface UserPosition {
   collateralValue: number;
   debtValue: number;
+  collateralValue: number;
+  debtValue: number;
   healthRatio: number;
+  accumulatedPoints: number;
   collaterals: Array<{
     mint: string;
     symbol: string;
@@ -32,6 +36,7 @@ export default function Home() {
   const [position, setPosition] = useState<UserPosition | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasAccount, setHasAccount] = useState(false);
+  const [isLoopingModalOpen, setIsLoopingModalOpen] = useState(false);
 
   const { connection } = useConnection();
 
@@ -142,11 +147,15 @@ export default function Home() {
 
 
       const healthRatio = totalDebtValue > 0 ? totalCollateralValue / totalDebtValue : 999;
+      
+      // @ts-ignore
+      const accumulatedPoints = debtAccount.accumulatedPoints ? debtAccount.accumulatedPoints.toNumber() : 0;
 
       setPosition({
         collateralValue: totalCollateralValue,
         debtValue: totalDebtValue,
         healthRatio,
+        accumulatedPoints,
         collaterals,
         debts,
       });
@@ -257,7 +266,12 @@ export default function Home() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+        <div className="bg-card border border-border rounded-lg p-6 hover:border-border-light transition-all">
+          <p className="text-muted text-sm uppercase tracking-wider mb-2">Points</p>
+          <p className="text-3xl font-light text-yellow-500">{position?.accumulatedPoints.toLocaleString()}</p>
+          <p className="text-secondary text-sm mt-1">Loyalty Rewards</p>
+        </div>
         <div className="bg-card border border-border rounded-lg p-6 hover:border-border-light transition-all">
           <p className="text-muted text-sm uppercase tracking-wider mb-2">Total Collateral</p>
           <p className="text-3xl font-light text-white">{position?.collaterals.reduce((sum, c) => sum + c.amount, 0).toFixed(4)}</p>
@@ -350,7 +364,22 @@ export default function Home() {
           <div className="text-3xl mb-2">💳</div>
           <p className="text-white font-medium">Repay</p>
         </a>
+        <div 
+          onClick={() => setIsLoopingModalOpen(true)}
+          className="p-6 bg-card border border-border rounded-lg hover:border-primary hover:shadow-glow transition-all text-center group cursor-pointer"
+        >
+          <div className="text-3xl mb-2">🔁</div>
+          <p className="text-white font-medium">Loop Strategy</p>
+        </div>
       </div>
+      
+      <LoopingModal 
+        isOpen={isLoopingModalOpen} 
+        onClose={() => setIsLoopingModalOpen(false)}
+        assetSymbol="SOL"
+        assetPrice={150}
+        walletBalance={10}
+      />
     </div>
   );
 }

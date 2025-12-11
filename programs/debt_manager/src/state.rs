@@ -37,6 +37,9 @@ pub struct UserDebtAccount {
     pub owner: Pubkey,
     pub collateral_balances: Vec<CollateralBalance>,
     pub debt_balances: Vec<DebtBalance>,
+    pub accumulated_points: u128,
+    pub last_points_update_ts: i64,
+    pub referrer: Option<Pubkey>,
     pub bump: u8,
 }
 

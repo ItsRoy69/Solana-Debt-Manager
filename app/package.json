@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "sync-idl": "xcopy \"..\\target\\idl\\debt_manager.json\" \"src\\metadata\\\" /Y && xcopy \"..\\target\\types\\debt_manager.ts\" \"src\\metadata\\\" /Y"
+    "sync-idl": "mkdir -p src/metadata && cp ../target/idl/debt_manager.json src/metadata/debt_manager.json && cp ../target/types/debt_manager.ts src/metadata/debt_manager.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",
