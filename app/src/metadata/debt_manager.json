@@ -1,0 +1,1166 @@
+{
+  "address": "Bym9jYYsJryghp9KWgsRAMT97NoRizbajvEjTKehZNwZ",
+  "metadata": {
+    "name": "debt_manager",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "accrue_interest",
+      "discriminator": [
+        47,
+        40,
+        115,
+        198,
+        91,
+        12,
+        222,
+        49
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "add_supported_borrow",
+      "discriminator": [
+        33,
+        173,
+        132,
+        81,
+        186,
+        125,
+        173,
+        113
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "base_rate",
+          "type": "u64"
+        },
+        {
+          "name": "optimal_utilization",
+          "type": "u64"
+        },
+        {
+          "name": "slope1",
+          "type": "u64"
+        },
+        {
+          "name": "slope2",
+          "type": "u64"
+        },
+        {
+          "name": "price_feed",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "add_supported_collateral",
+      "discriminator": [
+        157,
+        124,
+        78,
+        11,
+        87,
+        241,
+        202,
+        1
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "ltv",
+          "type": "u64"
+        },
+        {
+          "name": "liquidation_threshold",
+          "type": "u64"
+        },
+        {
+          "name": "liquidation_bonus",
+          "type": "u64"
+        },
+        {
+          "name": "price_feed",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "borrow",
+      "discriminator": [
+        228,
+        253,
+        131,
+        202,
+        207,
+        116,
+        89,
+        18
+      ],
+      "accounts": [
+        {
+          "name": "debt_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  98,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_token_account",
+          "writable": true
+        },
+        {
+          "name": "borrow_mint",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "price_feed"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "deposit_collateral",
+      "discriminator": [
+        156,
+        131,
+        142,
+        116,
+        146,
+        247,
+        162,
+        120
+      ],
+      "accounts": [
+        {
+          "name": "debt_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  98,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "user_collateral",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "collateral_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "collateral_mint"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "price_feed"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_protocol",
+      "discriminator": [
+        188,
+        233,
+        252,
+        106,
+        134,
+        146,
+        202,
+        91
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_vault",
+      "discriminator": [
+        48,
+        191,
+        163,
+        44,
+        71,
+        129,
+        63,
+        164
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "liquidate",
+      "discriminator": [
+        223,
+        179,
+        226,
+        125,
+        48,
+        46,
+        39,
+        74
+      ],
+      "accounts": [
+        {
+          "name": "debt_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  98,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user"
+        },
+        {
+          "name": "liquidator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "liquidator_collateral_account",
+          "writable": true
+        },
+        {
+          "name": "liquidator_borrow_account",
+          "writable": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "collateral_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "collateral_mint"
+        },
+        {
+          "name": "borrow_mint",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "collateral_price_feed"
+        },
+        {
+          "name": "borrow_price_feed"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "open_debt_account",
+      "discriminator": [
+        162,
+        219,
+        198,
+        223,
+        137,
+        204,
+        12,
+        179
+      ],
+      "accounts": [
+        {
+          "name": "debt_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  98,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "repay",
+      "discriminator": [
+        234,
+        103,
+        67,
+        82,
+        208,
+        234,
+        219,
+        166
+      ],
+      "accounts": [
+        {
+          "name": "debt_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  98,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_token_account",
+          "writable": true
+        },
+        {
+          "name": "borrow_mint",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "price_feed"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "update_rate_model",
+      "discriminator": [
+        147,
+        62,
+        169,
+        35,
+        219,
+        99,
+        73,
+        83
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "base_rate",
+          "type": "u64"
+        },
+        {
+          "name": "optimal_utilization",
+          "type": "u64"
+        },
+        {
+          "name": "slope1",
+          "type": "u64"
+        },
+        {
+          "name": "slope2",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "withdraw_collateral",
+      "discriminator": [
+        115,
+        135,
+        168,
+        106,
+        139,
+        214,
+        138,
+        150
+      ],
+      "accounts": [
+        {
+          "name": "debt_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  98,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "user_collateral",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "collateral_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "collateral_mint"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "price_feed"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "ProtocolConfig",
+      "discriminator": [
+        207,
+        91,
+        250,
+        28,
+        152,
+        179,
+        215,
+        209
+      ]
+    },
+    {
+      "name": "UserDebtAccount",
+      "discriminator": [
+        50,
+        150,
+        85,
+        62,
+        209,
+        47,
+        242,
+        36
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "MathOverflow",
+      "msg": "Math operation overflowed"
+    },
+    {
+      "code": 6001,
+      "name": "Unauthorized",
+      "msg": "Unauthorized access"
+    },
+    {
+      "code": 6002,
+      "name": "UnsupportedCollateral",
+      "msg": "Collateral not supported"
+    },
+    {
+      "code": 6003,
+      "name": "UnsupportedBorrowAsset",
+      "msg": "Borrow asset not supported"
+    },
+    {
+      "code": 6004,
+      "name": "InsufficientCollateral",
+      "msg": "Insufficient collateral"
+    },
+    {
+      "code": 6005,
+      "name": "LTVExceeded",
+      "msg": "LTV exceeded"
+    },
+    {
+      "code": 6006,
+      "name": "DebtAccountAlreadyExists",
+      "msg": "Debt account already exists"
+    },
+    {
+      "code": 6007,
+      "name": "NoDebtToRepay",
+      "msg": "No debt to repay"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidPriceFeed",
+      "msg": "Invalid Price Feed"
+    },
+    {
+      "code": 6009,
+      "name": "PriceTooOld",
+      "msg": "Price Too Old"
+    },
+    {
+      "code": 6010,
+      "name": "InvalidPrice",
+      "msg": "Invalid Price"
+    }
+  ],
+  "types": [
+    {
+      "name": "BorrowAssetInfo",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "base_rate",
+            "type": "u64"
+          },
+          {
+            "name": "optimal_utilization",
+            "type": "u64"
+          },
+          {
+            "name": "slope1",
+            "type": "u64"
+          },
+          {
+            "name": "slope2",
+            "type": "u64"
+          },
+          {
+            "name": "total_deposits",
+            "type": "u64"
+          },
+          {
+            "name": "total_borrows",
+            "type": "u64"
+          },
+          {
+            "name": "global_index",
+            "type": "u128"
+          },
+          {
+            "name": "last_update_ts",
+            "type": "u64"
+          },
+          {
+            "name": "price_feed",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CollateralBalance",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CollateralInfo",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "ltv",
+            "type": "u64"
+          },
+          {
+            "name": "liquidation_threshold",
+            "type": "u64"
+          },
+          {
+            "name": "liquidation_bonus",
+            "type": "u64"
+          },
+          {
+            "name": "price_feed",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DebtBalance",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "borrow_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "principal",
+            "type": "u64"
+          },
+          {
+            "name": "interest_index_snapshot",
+            "type": "u128"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProtocolConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "supported_collaterals",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "CollateralInfo"
+                }
+              }
+            }
+          },
+          {
+            "name": "supported_borrows",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "BorrowAssetInfo"
+                }
+              }
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UserDebtAccount",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_balances",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "CollateralBalance"
+                }
+              }
+            }
+          },
+          {
+            "name": "debt_balances",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "DebtBalance"
+                }
+              }
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -4,8 +4,8 @@ import { AnchorProvider, Program } from '@coral-xyz/anchor';
 import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 import { createContext, useContext, useMemo } from 'react';
-import { DebtManager } from '../../../target/types/debt_manager';
-import idl from '../../../target/idl/debt_manager.json';
+import { DebtManager } from '@/metadata/debt_manager';
+import idl from '@/metadata/debt_manager.json';
 
 if (!process.env.NEXT_PUBLIC_PROGRAM_ID) {
   throw new Error('NEXT_PUBLIC_PROGRAM_ID is not defined in environment variables');
